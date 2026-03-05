@@ -1,4 +1,7 @@
+import base64
+import requests
 import streamlit as st
+import yfinance as yf
 
 st.set_page_config(page_title="ABP Trade Sizer", page_icon="📈", layout="centered")
 
@@ -10,17 +13,69 @@ st.divider()
 # ── Inputs ──────────────────────────────────────────────────────────────────
 st.subheader("Trade Inputs")
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    CurrentPrice = st.number_input("Current Price ($)", min_value=0.01, value=42.0, step=0.01, format="%.2f")
+if "live_price" not in st.session_state:
+    st.session_state.live_price = 42.0
+
+if "portfolio_value" not in st.session_state:
+    st.session_state.portfolio_value = 12500.0
+
+ticker_col, btn_col, price_col = st.columns([3, 1, 2])
+with ticker_col:
+    ticker = st.text_input("Ticker Symbol", value="AAPL", placeholder="e.g. AAPL, TSLA, MSFT").upper()
+with btn_col:
+    st.write("")
+    fetch = st.button("Get Live Price", use_container_width=True)
+
+if fetch and ticker:
+    data = yf.Ticker(ticker).fast_info
+    price = getattr(data, "last_price", None) or getattr(data, "regular_market_price", None)
+    if price:
+        st.session_state.live_price = round(float(price), 2)
+        st.success(f"Live price for **{ticker}**: ${st.session_state.live_price:.2f}")
+    else:
+        st.error(f"Could not fetch price for '{ticker}'. Check the ticker symbol.")
+
+with price_col:
+    CurrentPrice = st.number_input("Current Price ($)", min_value=0.01, value=st.session_state.live_price, step=0.01, format="%.2f")
+
+col2, col3 = st.columns(2)
 with col2:
     PriceTarget = st.number_input("Price Target ($)", min_value=0.01, value=52.0, step=0.01, format="%.2f")
 with col3:
     StopLoss = st.number_input("Stop Loss ($)", min_value=0.01, value=39.0, step=0.01, format="%.2f")
 
+t212_col1, t212_col2 = st.columns([2, 1])
+with t212_col1:
+    t212_env = st.radio("Trading212 Environment", ["Live", "Demo"], horizontal=True)
+with t212_col2:
+    st.write("")
+    load_account = st.button("Load Portfolio Value", use_container_width=True)
+
+if load_account:
+    api_key    = st.secrets["trading212"]["api_key"]
+    api_secret = st.secrets["trading212"]["api_secret"]
+    encoded    = base64.b64encode(f"{api_key}:{api_secret}".encode()).decode()
+    base_url   = "https://live.trading212.com" if t212_env == "Live" else "https://demo.trading212.com"
+    try:
+        resp = requests.get(
+            f"{base_url}/api/v0/equity/account/cash",
+            headers={"Authorization": f"Basic {encoded}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        cost_basis = float(data["invested"])
+        cash = float(data["free"])
+        st.session_state.portfolio_value = round(cost_basis + cash, 2)
+        st.success(f"Portfolio loaded: **${st.session_state.portfolio_value:,.2f}** (cost basis ${cost_basis:,.2f} + cash ${cash:,.2f})")
+    except requests.HTTPError:
+        st.error(f"API error {resp.status_code}: {resp.text}")
+    except Exception as e:
+        st.error(f"Failed to load account data: {e}")
+
 col4, col5 = st.columns(2)
 with col4:
-    PortfolioValue = st.number_input("Portfolio Value ($)", min_value=1.0, value=12500.0, step=100.0, format="%.2f")
+    PortfolioValue = st.number_input("Portfolio Value ($)", min_value=1.0, value=st.session_state.portfolio_value, step=100.0, format="%.2f")
 with col5:
     MaxLoss_pct = st.slider("Max Acceptable Loss (% of portfolio)", min_value=0.1, max_value=5.0, value=1.0, step=0.1)
 
