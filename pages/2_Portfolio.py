@@ -1,3 +1,4 @@
+import base64
 import requests
 import pandas as pd
 import streamlit as st
@@ -25,12 +26,13 @@ with btn_col:
     load_btn = st.button("Load Portfolio", type="primary", use_container_width=True)
 
 if load_btn:
-    api_key, _secret = get_t212_credentials()
+    api_key, api_secret = get_t212_credentials()
     if not api_key:
         st.error("No Trading212 credentials found. Please save them on the Settings page.")
         st.stop()
+    encoded  = base64.b64encode(f"{api_key}:{api_secret or ''}".encode()).decode()
     base_url = "https://live.trading212.com" if t212_env == "Live" else "https://demo.trading212.com"
-    headers  = {"Authorization": api_key}
+    headers  = {"Authorization": f"Basic {encoded}"}
 
     try:
         cash_resp = requests.get(f"{base_url}/api/v0/equity/account/cash",  headers=headers, timeout=10)
