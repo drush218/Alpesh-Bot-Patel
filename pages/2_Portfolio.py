@@ -92,17 +92,16 @@ else:
         cost          = qty * avg_price
         position_ppl  = float(p.get("ppl", value - cost))
         ppl_pct       = (position_ppl / cost * 100) if cost else 0
-        alloc_pct     = (value / total * 100) if total else 0
 
         rows.append({
-            "Ticker":       p.get("ticker", ""),
-            "Qty":          round(qty, 4),
-            "Avg Price":    avg_price,
-            "Curr Price":   curr_price,
-            "Value ($)":    round(value, 2),
-            "P&L ($)":      round(position_ppl, 2),
-            "P&L (%)":      round(ppl_pct, 2),
-            "% of Portfolio": round(alloc_pct, 2),
+            "Ticker":         p.get("ticker", ""),
+            "Qty":            round(qty, 4),
+            "Avg Price":      avg_price,
+            "Curr Price":     curr_price,
+            "Value ($)":      round(value, 2),
+            "P&L ($)":        round(position_ppl, 2),
+            "P&L (%)":        round(ppl_pct, 2),
+            "% of Portfolio": 0,  # calculated after all rows are built
         })
 
     # Add cash as its own row
@@ -114,8 +113,15 @@ else:
         "Value ($)":      round(free_cash, 2),
         "P&L ($)":        "-",
         "P&L (%)":        "-",
-        "% of Portfolio": round(free_cash / total * 100, 2) if total else 0,
+        "% of Portfolio": 0,
     })
+
+    # Recalculate allocation using sum of displayed values to avoid
+    # cross-currency distortion (positions priced in USD/EUR vs GBP account total)
+    display_total = sum(r["Value ($)"] for r in rows if isinstance(r["Value ($)"], (int, float)))
+    for r in rows:
+        if isinstance(r["Value ($)"], (int, float)) and display_total:
+            r["% of Portfolio"] = round(r["Value ($)"] / display_total * 100, 2)
 
     df = pd.DataFrame(rows).sort_values("% of Portfolio", ascending=False).reset_index(drop=True)
 
