@@ -1,9 +1,17 @@
 import base64
 import requests
 import streamlit as st
+from auth import require_auth, logout, get_t212_credentials
 import yfinance as yf
 
 st.set_page_config(page_title="ABP Trade Sizer", page_icon="📈", layout="centered")
+
+require_auth()
+
+with st.sidebar:
+    st.write(f"Signed in as: {st.session_state.auth_user.email}")
+    if st.button("Log out"):
+        logout()
 
 st.title("📈 ABP Trade Position Sizer")
 st.caption("Risk-first position sizing based on price targets, stop loss, and MACD signals.")
@@ -52,9 +60,11 @@ with t212_col2:
     load_account = st.button("Load Portfolio Value", use_container_width=True)
 
 if load_account:
-    api_key    = st.secrets["trading212"]["api_key"]
-    api_secret = st.secrets["trading212"]["api_secret"]
-    encoded    = base64.b64encode(f"{api_key}:{api_secret}".encode()).decode()
+    api_key, api_secret = get_t212_credentials()
+    if not api_key:
+        st.error("No Trading212 credentials found. Please save them on the Settings page.")
+        st.stop()
+    encoded = base64.b64encode(f"{api_key}:{api_secret or ''}".encode()).decode()
     base_url   = "https://live.trading212.com" if t212_env == "Live" else "https://demo.trading212.com"
     try:
         resp = requests.get(
