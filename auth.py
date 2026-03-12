@@ -119,13 +119,12 @@ def get_t212_credentials() -> tuple:
 
 
 def get_deposit_stats() -> dict | None:
-    """Return cached deposit stats if < 24 h old, else None."""
-    from datetime import datetime, timezone, timedelta
+    """Return stored deposit stats, or None if never fetched."""
     supabase = init_supabase()
     try:
         row = (
             supabase.table("user_settings")
-            .select("deposit_total, first_deposit_date, deposit_stats_cached_at")
+            .select("deposit_total, first_deposit_date, deposit_stats_cached_at, last_tx_fetched_at")
             .eq("id", _user_id())
             .single()
             .execute()
@@ -133,19 +132,18 @@ def get_deposit_stats() -> dict | None:
         data = row.data
         if not data or not data.get("deposit_stats_cached_at"):
             return None
-        cached_at = datetime.fromisoformat(data["deposit_stats_cached_at"])
-        if datetime.now(timezone.utc) - cached_at > timedelta(hours=24):
-            return None
         return {
             "total_deposited":    float(data["deposit_total"]),
             "first_deposit_date": data["first_deposit_date"],
+            "cached_at":          data["deposit_stats_cached_at"],
+            "last_tx_fetched_at": data.get("last_tx_fetched_at"),
         }
     except Exception:
         return None
 
 
-def save_deposit_stats(total_deposited: float, first_deposit_date: str) -> None:
-    """Persist deposit stats with current timestamp."""
+def save_deposit_stats(total_deposited: float, first_deposit_date: str, last_tx_fetched_at: str) -> None:
+    """Persist deposit stats and the timestamp we fetched up to."""
     from datetime import datetime, timezone
     supabase = init_supabase()
     supabase.table("user_settings").upsert({
@@ -153,6 +151,7 @@ def save_deposit_stats(total_deposited: float, first_deposit_date: str) -> None:
         "deposit_total":            total_deposited,
         "first_deposit_date":       first_deposit_date,
         "deposit_stats_cached_at":  datetime.now(timezone.utc).isoformat(),
+        "last_tx_fetched_at":       last_tx_fetched_at,
     }).execute()
 
 

@@ -1,4 +1,4 @@
-import base64, requests, pandas as pd, streamlit as st
+import base64, requests, pandas as pd, streamlit as st, time
 from datetime import datetime, timezone
 from auth import get_t212_credentials, get_deposit_stats, save_deposit_stats
 
@@ -30,34 +30,76 @@ if load_btn:
         st.error(f"Failed to load portfolio: {e}")
         st.stop()
     deposit_stats = get_deposit_stats()
-    if deposit_stats is None:
-        with st.spinner("Fetching deposit history (once per day)..."):
-            try:
-                total_deposited = 0.0
-                first_date      = None
-                next_path       = "/api/v0/history/transactions?limit=50"
-                tx_headers = {"Authorization": api_key}
-                while next_path:
-                    resp = requests.get(f"https://live.trading212.com{next_path}", headers=tx_headers, timeout=20)
-                    resp.raise_for_status()
-                    data  = resp.json()
-                    for tx in data.get("items", []):
-                        tx_type = tx.get("type", "")
-                        amount  = float(tx.get("amount", 0))
-                        date    = tx.get("dateModified") or tx.get("date", "")
-                        if tx_type == "DEPOSIT":
-                            total_deposited += amount
-                        elif tx_type == "WITHDRAWAL":
-                            total_deposited -= abs(amount)
-                        if tx_type in ("DEPOSIT", "WITHDRAWAL") and date:
-                            if first_date is None or date < first_date:
-                                first_date = date
-                    next_path = data.get("nextPagePath")
-                save_deposit_stats(total_deposited, first_date or "")
-                deposit_stats = {"total_deposited": total_deposited, "first_deposit_date": first_date or ""}
-            except Exception as e:
-                st.warning(f"Could not fetch deposit history: {e}")
-                deposit_stats = None
+    now_iso       = datetime.now(timezone.utc).isoformat()
+    is_stale      = deposit_stats is None or (
+        datetime.now(timezone.utc) - datetime.fromisoformat(deposit_stats["cached_at"])
+    ).total_seconds() > 86400
+
+    if is_stale:
+        incremental   = deposit_stats is not None and deposit_stats.get("last_tx_fetched_at")
+        since_iso     = deposit_stats["last_tx_fetched_at"] if incremental else None
+        label         = "Updating deposit history..." if incremental else "Fetching deposit history (first time, may take a moment)..."
+
+        status_text   = st.empty()
+        status_text.info(label)
+        try:
+            net_delta   = 0.0
+            first_date  = None if not incremental else deposit_stats.get("first_deposit_date", "")
+            pages       = 0
+            next_path   = "/api/v0/equity/history/transactions?limit=50"
+            done        = False
+
+            while next_path and not done:
+                resp = requests.get(f"https://live.trading212.com{next_path}", headers=headers, timeout=20)
+                resp.raise_for_status()
+                data  = resp.json()
+                items = data.get("items", [])
+                pages += 1
+                status_text.info(f"{label}  Page {pages}, {pages * 50} transactions scanned...")
+
+                for tx in items:
+                    tx_type = tx.get("type", "")
+                    amount  = float(tx.get("amount", 0))
+                    date    = tx.get("dateTime", "")
+                    # Stop once we reach transactions we've already counted
+                    if since_iso and date and date <= since_iso:
+                        done = True
+                        break
+                    if tx_type == "DEPOSIT" and amount >= 5:
+                        net_delta += amount
+                    elif tx_type == "WITHDRAW":
+                        net_delta -= abs(amount)
+                    elif tx_type == "TRANSFER":
+                        net_delta += amount  # positive = transfer in, negative = transfer out
+                    if not incremental and tx_type in ("DEPOSIT", "WITHDRAW", "TRANSFER") and date:
+                        if first_date is None or date < first_date:
+                            first_date = date
+
+                raw_next = data.get("nextPagePath")
+                if raw_next and not raw_next.startswith("/"):
+                    raw_next = f"/api/v0/equity/history/transactions?{raw_next}"
+                next_path = raw_next if not done else None
+
+                if next_path:
+                    remaining = int(resp.headers.get("x-ratelimit-remaining", 1))
+                    if remaining <= 1:
+                        reset_at = int(resp.headers.get("x-ratelimit-reset", 0))
+                        wait     = max(0, reset_at - time.time()) + 0.5
+                        status_text.info(f"Rate limit reached — resuming in {wait:.0f}s...")
+                        time.sleep(wait)
+                    else:
+                        time.sleep(0.2)
+
+            new_total      = (deposit_stats["total_deposited"] if incremental else 0.0) + net_delta
+            new_first_date = first_date or ""
+            save_deposit_stats(new_total, new_first_date, now_iso)
+            deposit_stats  = {"total_deposited": new_total, "first_deposit_date": new_first_date,
+                               "cached_at": now_iso, "last_tx_fetched_at": now_iso}
+            status_text.empty()
+        except Exception as e:
+            status_text.empty()
+            st.warning(f"Could not fetch deposit history: {e}")
+            deposit_stats = deposit_stats  # use stale cache if available
     st.session_state.deposit_stats = deposit_stats
 
 if "portfolio_cash" not in st.session_state:
@@ -86,9 +128,9 @@ if deposit_stats and deposit_stats.get("total_deposited"):
         except Exception:
             years = None
     r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Portfolio Value", f"${total:,.2f}")
-    r2.metric("Total Deposited", f"${deposited:,.2f}")
-    r3.metric("Total Return",    f"${raw_return:+,.2f}", delta=f"{pct_return:+.2f}%", delta_color="normal")
+    r1.metric("Portfolio Value", f"£{total:,.2f}")
+    r2.metric("Net Deposited",   f"£{deposited:,.2f}")
+    r3.metric("Total Return",    f"£{raw_return:+,.2f}", delta=f"{pct_return:+.2f}%", delta_color="normal")
     if years and years > 0:
         cagr = ((total / deposited) ** (1 / years) - 1) * 100
         r4.metric("Annualised (CAGR)", f"{cagr:.2f}%", delta=f"over {years:.1f} yrs", delta_color="off")
@@ -198,13 +240,15 @@ else:
         hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
     ))
 
-    # Left annotations: company name + grey ticker
+    # Left annotations: company name (truncated) + grey ticker
     for _, row in stocks.iterrows():
         display_ticker = row["Ticker"].split("_")[0]
+        name = row["Company"]
+        short_name = name if len(name) <= 22 else name[:21] + "…"
         fig.add_annotation(
             xref="paper", yref="y",
             x=0, y=row["Ticker"],
-            text=(f"<b>{row['Company']}</b>"
+            text=(f"<b>{short_name}</b>"
                   f"<br><span style='color:#9ca3af;font-size:10px'>{display_ticker}</span>"),
             showarrow=False, xanchor="right", xshift=-10,
             font=dict(size=12, family="Inter, system-ui, sans-serif", color="#111827"),
@@ -227,13 +271,25 @@ else:
             align="right",
         )
 
+    # Header labels above the right annotations
+    fig.add_annotation(
+        xref="x", yref="paper",
+        x=100, y=1.0,
+        text=(f"<span style='color:#6b7280;font-size:11px'>Allocation</span>"
+              f"<span style='color:#d1d5db'>  |  </span>"
+              f"<span style='color:#6b7280;font-size:11px'>P&L</span>"),
+        showarrow=False, xanchor="right", xshift=-12, yanchor="bottom",
+        font=dict(size=11, family="Inter, system-ui, sans-serif"),
+        align="right",
+    )
+
     fig.update_layout(
         barmode="overlay",
         xaxis=dict(range=[0, 100], showticklabels=False,
                    showgrid=False, zeroline=False, fixedrange=True),
         yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
         height=max(320, len(stocks) * 64),
-        margin=dict(l=220, r=200, t=10, b=10),
+        margin=dict(l=160, r=150, t=30, b=10),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         bargap=0.40,
