@@ -3,3 +3,4 @@ yfinance
 requests
 supabase
 cryptography
+plotly

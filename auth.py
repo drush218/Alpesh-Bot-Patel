@@ -117,6 +117,45 @@ def get_t212_credentials() -> tuple:
         return None, None
 
 
+
+def get_deposit_stats() -> dict | None:
+    """Return cached deposit stats if < 24 h old, else None."""
+    from datetime import datetime, timezone, timedelta
+    supabase = init_supabase()
+    try:
+        row = (
+            supabase.table("user_settings")
+            .select("deposit_total, first_deposit_date, deposit_stats_cached_at")
+            .eq("id", _user_id())
+            .single()
+            .execute()
+        )
+        data = row.data
+        if not data or not data.get("deposit_stats_cached_at"):
+            return None
+        cached_at = datetime.fromisoformat(data["deposit_stats_cached_at"])
+        if datetime.now(timezone.utc) - cached_at > timedelta(hours=24):
+            return None
+        return {
+            "total_deposited":    float(data["deposit_total"]),
+            "first_deposit_date": data["first_deposit_date"],
+        }
+    except Exception:
+        return None
+
+
+def save_deposit_stats(total_deposited: float, first_deposit_date: str) -> None:
+    """Persist deposit stats with current timestamp."""
+    from datetime import datetime, timezone
+    supabase = init_supabase()
+    supabase.table("user_settings").upsert({
+        "id":                       _user_id(),
+        "deposit_total":            total_deposited,
+        "first_deposit_date":       first_deposit_date,
+        "deposit_stats_cached_at":  datetime.now(timezone.utc).isoformat(),
+    }).execute()
+
+
 def save_t212_credentials(api_key: str, api_secret: str) -> None:
     """Encrypt and upsert Trading212 credentials for the logged-in user."""
     supabase = init_supabase()

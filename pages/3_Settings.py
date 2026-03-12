@@ -1,14 +1,8 @@
 import streamlit as st
-from auth import require_auth, logout, get_t212_credentials, save_t212_credentials
+from auth import get_t212_credentials, save_t212_credentials
 
-st.set_page_config(page_title="ABP Settings", page_icon="⚙️", layout="centered")
 
-require_auth()
 
-with st.sidebar:
-    st.write(f"Signed in as: {st.session_state.auth_user.email}")
-    if st.button("Log out"):
-        logout()
 
 st.title("⚙️ Settings")
 st.subheader("Trading212 Credentials")
