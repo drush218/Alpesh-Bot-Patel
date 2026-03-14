@@ -32,7 +32,7 @@ if load_btn:
     deposit_stats = get_deposit_stats()
     now_iso       = datetime.now(timezone.utc).isoformat()
     is_stale      = deposit_stats is None or (
-        datetime.now(timezone.utc) - datetime.fromisoformat(deposit_stats["cached_at"])
+        datetime.now(timezone.utc) - datetime.fromisoformat(deposit_stats["cached_at"]).replace(tzinfo=timezone.utc)
     ).total_seconds() > 86400
 
     if is_stale:
