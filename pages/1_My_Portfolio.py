@@ -1,4 +1,6 @@
 import base64, requests, pandas as pd, streamlit as st, time
+from streamlit_js_eval import streamlit_js_eval
+from charts import build_allocation_chart
 from datetime import datetime, timezone
 from auth import get_t212_credentials, get_deposit_stats, save_deposit_stats
 
@@ -181,7 +183,6 @@ else:
 
     # ── Allocation chart ──────────────────────────────────────────────────────
     st.subheader("Allocation")
-    import plotly.graph_objects as go
     import yfinance as yf
 
     @st.cache_data(ttl=86400, show_spinner=False)
@@ -200,127 +201,9 @@ else:
     stocks["Cost (%)"] = (stocks["Cost ($)"] / display_total * 100).round(1)
     stocks["Company"]  = stocks["Ticker"].apply(lambda t: "Cash" if t == "CASH" else _company_name(t))
 
-    BLUE  = "rgba(99,102,241,0.85)"
-    TRACK = "rgba(150,150,150,0.18)"
+    screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="screen_width")
+    is_mobile    = (screen_width or 1200) < 600
 
-    fig = go.Figure()
-
-    # Background track pill
-    fig.add_trace(go.Bar(
-        x=[100] * len(stocks), y=stocks["Ticker"], orientation="h",
-        marker=dict(color=TRACK, cornerradius=8),
-        showlegend=False, hoverinfo="skip",
-    ))
-
-    # Allocation bar — no text, labels handled by annotations on the track
-    fig.add_trace(go.Bar(
-        x=stocks["% of Portfolio"], y=stocks["Ticker"], orientation="h",
-        marker=dict(color=BLUE, cornerradius=8),
-        showlegend=False,
-        hovertemplate="<b>%{y}</b><br>Allocation: %{x:.1f}%<extra></extra>",
-    ))
-
-    # Cost-basis dot + callout — split by P&L direction for visibility (exclude CASH)
-    equity = stocks[stocks["Ticker"] != "CASH"]
-    pos = equity[equity["P&L (%)"] >= 0]
-    neg = equity[equity["P&L (%)"] < 0]
-    _marker = dict(size=11, color="white", symbol="circle",
-                   line=dict(color="rgba(60,60,60,0.7)", width=1.5))
-    if not pos.empty:
-        fig.add_trace(go.Scatter(
-            x=pos["Cost (%)"], y=pos["Ticker"],
-            mode="markers+text",
-            marker=_marker,
-            text=[f"{v:.1f}% " for v in pos["Cost (%)"]],
-            textposition="middle left",
-            textfont=dict(size=11, color="white", family="Inter, system-ui, sans-serif"),
-            showlegend=False,
-            hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
-        ))
-    if not neg.empty:
-        fig.add_trace(go.Scatter(
-            x=neg["Cost (%)"], y=neg["Ticker"],
-            mode="markers+text",
-            marker=_marker,
-            text=[f" {v:.1f}%" for v in neg["Cost (%)"]],
-            textposition="middle right",
-            textfont=dict(size=11, color="#111827", family="Inter, system-ui, sans-serif"),
-            showlegend=False,
-            hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
-        ))
-
-    # Left annotations: company name (truncated) + grey ticker · qty
-    for _, row in stocks.iterrows():
-        display_ticker = row["Ticker"].split("_")[0]
-        name = row["Company"]
-        short_name = name if len(name) <= 18 else name[:17] + "…"
-        qty = row["Qty"]
-        if isinstance(qty, float):
-            qty_str = f"{qty:,.4f}".rstrip("0").rstrip(".")
-        else:
-            qty_str = ""
-        ticker_line = display_ticker + (f" · {qty_str}" if qty_str else "")
-        fig.add_annotation(
-            xref="paper", yref="y",
-            x=0, y=row["Ticker"],
-            text=(f"<b>{short_name}</b>"
-                  f"<br><span style='color:#9ca3af;font-size:10px'>{ticker_line}</span>"),
-            showarrow=False, xanchor="right", xshift=-10,
-            font=dict(size=12, family="Inter, system-ui, sans-serif", color="#111827"),
-            align="right",
-        )
-
-    # Right annotations: inside grey track, right-aligned to its edge
-    for _, row in stocks.iterrows():
-        pnl = row["P&L (%)"]
-        pct = row["% of Portfolio"]
-        val = row["Value ($)"]
-        val_str = f"${val:,.0f}"
-        sep = "<span style='color:#d1d5db'>  |  </span>"
-        if row["Ticker"] == "CASH" or not isinstance(pnl, (int, float)):
-            label_text = (f"<span style='color:#6b7280'>{val_str}</span>"
-                          f"{sep}"
-                          f"<span style='color:#374151'><b>{pct:.1f}%</b></span>")
-        else:
-            pnl_color = "#16a34a" if pnl >= 0 else "#dc2626"
-            label_text = (f"<span style='color:#6b7280'>{val_str}</span>"
-                          f"{sep}"
-                          f"<span style='color:#374151'><b>{pct:.1f}%</b></span>"
-                          f"{sep}"
-                          f"<span style='color:{pnl_color}'>{pnl:+.1f}%</span>")
-        fig.add_annotation(
-            xref="x", yref="y",
-            x=100, y=row["Ticker"],
-            text=label_text,
-            showarrow=False, xanchor="right", xshift=-12,
-            font=dict(size=12, family="Inter, system-ui, sans-serif"),
-            align="right",
-        )
-
-    # Header labels above the right annotations
-    fig.add_annotation(
-        xref="x", yref="paper",
-        x=100, y=1.0,
-        text=(f"<span style='color:#6b7280;font-size:11px'>Value</span>"
-              f"<span style='color:#d1d5db'>  |  </span>"
-              f"<span style='color:#6b7280;font-size:11px'>Allocation</span>"
-              f"<span style='color:#d1d5db'>  |  </span>"
-              f"<span style='color:#6b7280;font-size:11px'>P&L</span>"),
-        showarrow=False, xanchor="right", xshift=-12, yanchor="bottom",
-        font=dict(size=11, family="Inter, system-ui, sans-serif"),
-        align="right",
-    )
-
-    fig.update_layout(
-        barmode="overlay",
-        xaxis=dict(range=[0, 100], showticklabels=False,
-                   showgrid=False, zeroline=False, fixedrange=True),
-        yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
-        height=max(320, len(stocks) * 64),
-        margin=dict(l=120, r=30, t=30, b=10),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        bargap=0.40,
-    )
+    fig = build_allocation_chart(stocks, is_mobile=is_mobile)
     st.plotly_chart(fig, use_container_width=True)
     st.caption("Bars = % of portfolio  \u00b7  White dot = cost-basis allocation")

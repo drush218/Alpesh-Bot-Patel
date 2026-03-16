@@ -4,3 +4,4 @@ requests
 supabase
 cryptography
 plotly
+streamlit-js-eval
