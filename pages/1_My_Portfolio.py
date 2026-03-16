@@ -23,6 +23,7 @@ if load_btn:
         pos_resp.raise_for_status()
         st.session_state.portfolio_cash      = cash_resp.json()
         st.session_state.portfolio_positions = pos_resp.json()
+        st.write("DEBUG position sample:", pos_resp.json()[0] if pos_resp.json() else "empty")
     except requests.HTTPError as e:
         st.error(f"API error {e.response.status_code}: {e.response.text}")
         st.stop()
@@ -177,14 +178,6 @@ else:
         if isinstance(r["Value ($)"], (int, float)) and display_total:
             r["% of Portfolio"] = round(r["Value ($)"] / display_total * 100, 2)
     df = pd.DataFrame(rows).sort_values("% of Portfolio", ascending=False).reset_index(drop=True)
-    table_cols = ["Ticker", "Qty", "Avg Price", "Curr Price", "Value ($)", "P&L ($)", "P&L (%)"]
-    st.dataframe(df[table_cols], use_container_width=True, hide_index=True, column_config={
-        "P&L ($)":    st.column_config.NumberColumn("P&L ($)",    format="$%.2f"),
-        "Value ($)":  st.column_config.NumberColumn("Value ($)",  format="$%.2f"),
-        "Avg Price":  st.column_config.NumberColumn("Avg Price",  format="$%.2f"),
-        "Curr Price": st.column_config.NumberColumn("Curr Price", format="$%.2f"),
-        "P&L (%)":    st.column_config.NumberColumn("P&L (%)",    format="%.2f%%"),
-    })
 
     # ── Allocation chart ──────────────────────────────────────────────────────
     st.subheader("Allocation")
@@ -201,11 +194,11 @@ else:
             return clean
 
     sort_by = st.radio("Sort by", ["Size", "A-Z"], horizontal=True, key="alloc_sort")
-    stocks = df[df["Ticker"] != "CASH"].copy()
+    stocks = df.copy()
     stocks = (stocks.sort_values("% of Portfolio", ascending=True)
               if sort_by == "Size" else stocks.sort_values("Ticker", ascending=False))
     stocks["Cost (%)"] = (stocks["Cost ($)"] / display_total * 100).round(1)
-    stocks["Company"]  = stocks["Ticker"].apply(_company_name)
+    stocks["Company"]  = stocks["Ticker"].apply(lambda t: "Cash" if t == "CASH" else _company_name(t))
 
     BLUE  = "rgba(99,102,241,0.85)"
     TRACK = "rgba(150,150,150,0.18)"
@@ -227,29 +220,51 @@ else:
         hovertemplate="<b>%{y}</b><br>Allocation: %{x:.1f}%<extra></extra>",
     ))
 
-    # Cost-basis dot + callout
-    fig.add_trace(go.Scatter(
-        x=stocks["Cost (%)"], y=stocks["Ticker"],
-        mode="markers+text",
-        marker=dict(size=11, color="white", symbol="circle",
-                    line=dict(color="rgba(60,60,60,0.7)", width=1.5)),
-        text=[f"  {v:.1f}%" for v in stocks["Cost (%)"]],
-        textposition="middle right",
-        textfont=dict(size=11, color="#111827", family="Inter, system-ui, sans-serif"),
-        showlegend=False,
-        hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
-    ))
+    # Cost-basis dot + callout — split by P&L direction for visibility (exclude CASH)
+    equity = stocks[stocks["Ticker"] != "CASH"]
+    pos = equity[equity["P&L (%)"] >= 0]
+    neg = equity[equity["P&L (%)"] < 0]
+    _marker = dict(size=11, color="white", symbol="circle",
+                   line=dict(color="rgba(60,60,60,0.7)", width=1.5))
+    if not pos.empty:
+        fig.add_trace(go.Scatter(
+            x=pos["Cost (%)"], y=pos["Ticker"],
+            mode="markers+text",
+            marker=_marker,
+            text=[f"{v:.1f}% " for v in pos["Cost (%)"]],
+            textposition="middle left",
+            textfont=dict(size=11, color="white", family="Inter, system-ui, sans-serif"),
+            showlegend=False,
+            hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
+        ))
+    if not neg.empty:
+        fig.add_trace(go.Scatter(
+            x=neg["Cost (%)"], y=neg["Ticker"],
+            mode="markers+text",
+            marker=_marker,
+            text=[f" {v:.1f}%" for v in neg["Cost (%)"]],
+            textposition="middle right",
+            textfont=dict(size=11, color="#111827", family="Inter, system-ui, sans-serif"),
+            showlegend=False,
+            hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
+        ))
 
-    # Left annotations: company name (truncated) + grey ticker
+    # Left annotations: company name (truncated) + grey ticker · qty
     for _, row in stocks.iterrows():
         display_ticker = row["Ticker"].split("_")[0]
         name = row["Company"]
-        short_name = name if len(name) <= 22 else name[:21] + "…"
+        short_name = name if len(name) <= 18 else name[:17] + "…"
+        qty = row["Qty"]
+        if isinstance(qty, float):
+            qty_str = f"{qty:,.4f}".rstrip("0").rstrip(".")
+        else:
+            qty_str = ""
+        ticker_line = display_ticker + (f" · {qty_str}" if qty_str else "")
         fig.add_annotation(
             xref="paper", yref="y",
             x=0, y=row["Ticker"],
             text=(f"<b>{short_name}</b>"
-                  f"<br><span style='color:#9ca3af;font-size:10px'>{display_ticker}</span>"),
+                  f"<br><span style='color:#9ca3af;font-size:10px'>{ticker_line}</span>"),
             showarrow=False, xanchor="right", xshift=-10,
             font=dict(size=12, family="Inter, system-ui, sans-serif", color="#111827"),
             align="right",
@@ -259,13 +274,24 @@ else:
     for _, row in stocks.iterrows():
         pnl = row["P&L (%)"]
         pct = row["% of Portfolio"]
-        pnl_color = "#16a34a" if pnl >= 0 else "#dc2626"
+        val = row["Value ($)"]
+        val_str = f"${val:,.0f}"
+        sep = "<span style='color:#d1d5db'>  |  </span>"
+        if row["Ticker"] == "CASH" or not isinstance(pnl, (int, float)):
+            label_text = (f"<span style='color:#6b7280'>{val_str}</span>"
+                          f"{sep}"
+                          f"<span style='color:#374151'><b>{pct:.1f}%</b></span>")
+        else:
+            pnl_color = "#16a34a" if pnl >= 0 else "#dc2626"
+            label_text = (f"<span style='color:#6b7280'>{val_str}</span>"
+                          f"{sep}"
+                          f"<span style='color:#374151'><b>{pct:.1f}%</b></span>"
+                          f"{sep}"
+                          f"<span style='color:{pnl_color}'>{pnl:+.1f}%</span>")
         fig.add_annotation(
             xref="x", yref="y",
             x=100, y=row["Ticker"],
-            text=(f"<span style='color:#374151'><b>{pct:.1f}%</b></span>"
-                  f"<span style='color:#d1d5db'>  |  </span>"
-                  f"<span style='color:{pnl_color}'>{pnl:+.1f}%</span>"),
+            text=label_text,
             showarrow=False, xanchor="right", xshift=-12,
             font=dict(size=12, family="Inter, system-ui, sans-serif"),
             align="right",
@@ -275,7 +301,9 @@ else:
     fig.add_annotation(
         xref="x", yref="paper",
         x=100, y=1.0,
-        text=(f"<span style='color:#6b7280;font-size:11px'>Allocation</span>"
+        text=(f"<span style='color:#6b7280;font-size:11px'>Value</span>"
+              f"<span style='color:#d1d5db'>  |  </span>"
+              f"<span style='color:#6b7280;font-size:11px'>Allocation</span>"
               f"<span style='color:#d1d5db'>  |  </span>"
               f"<span style='color:#6b7280;font-size:11px'>P&L</span>"),
         showarrow=False, xanchor="right", xshift=-12, yanchor="bottom",
@@ -289,7 +317,7 @@ else:
                    showgrid=False, zeroline=False, fixedrange=True),
         yaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
         height=max(320, len(stocks) * 64),
-        margin=dict(l=160, r=150, t=30, b=10),
+        margin=dict(l=120, r=30, t=30, b=10),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
         bargap=0.40,
