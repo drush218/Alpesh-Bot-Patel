@@ -25,7 +25,6 @@ if load_btn:
         pos_resp.raise_for_status()
         st.session_state.portfolio_cash      = cash_resp.json()
         st.session_state.portfolio_positions = pos_resp.json()
-        st.write("DEBUG position sample:", pos_resp.json()[0] if pos_resp.json() else "empty")
     except requests.HTTPError as e:
         st.error(f"API error {e.response.status_code}: {e.response.text}")
         st.stop()
@@ -162,23 +161,33 @@ else:
         qty        = float(p.get("quantity", 0))
         avg_price  = float(p.get("averagePrice", 0))
         curr_price = float(p.get("currentPrice", 0))
-        value      = qty * curr_price
-        cost       = qty * avg_price
-        pos_ppl    = float(p.get("ppl", value - cost))
-        ppl_pct    = (pos_ppl / cost * 100) if cost else 0
+        pos_ppl    = float(p.get("ppl", 0))
+        fx_ppl     = float(p.get("fxPpl", 0))
+        # Derive current FX rate from T212's own ppl/fxPpl fields.
+        # (ppl - fxPpl) = price-movement P&L at current FX rate (GBP)
+        # price_pnl_local = same P&L in local currency
+        # fx_rate = GBP per 1 unit of local currency
+        price_pnl_local = (curr_price - avg_price) * qty
+        if abs(price_pnl_local) > 0.0001:
+            fx_rate = (pos_ppl - fx_ppl) / price_pnl_local
+        else:
+            fx_rate = 1.0  # flat position — assume GBP or negligible FX effect
+        value_gbp = qty * curr_price * fx_rate
+        cost_gbp  = qty * avg_price  * fx_rate
+        ppl_pct   = (pos_ppl / cost_gbp * 100) if cost_gbp else 0
         rows.append({
             "Ticker": p.get("ticker", ""), "Qty": round(qty, 4),
             "Avg Price": avg_price, "Curr Price": curr_price,
-            "Cost ($)": round(cost, 2), "Value ($)": round(value, 2),
-            "P&L ($)": round(pos_ppl, 2), "P&L (%)": round(ppl_pct, 2),
+            "Cost (£)": round(cost_gbp, 2), "Value (£)": round(value_gbp, 2),
+            "P&L (£)": round(pos_ppl, 2), "P&L (%)": round(ppl_pct, 2),
             "% of Portfolio": 0,
         })
     rows.append({"Ticker": "CASH", "Qty": "-", "Avg Price": "-", "Curr Price": "-",
-                 "Value ($)": round(free_cash, 2), "P&L ($)": "-", "P&L (%)": "-", "% of Portfolio": 0})
-    display_total = sum(r["Value ($)"] for r in rows if isinstance(r["Value ($)"], (int, float)))
+                 "Value (£)": round(free_cash, 2), "P&L (£)": "-", "P&L (%)": "-", "% of Portfolio": 0})
+    display_total = sum(r["Value (£)"] for r in rows if isinstance(r["Value (£)"], (int, float)))
     for r in rows:
-        if isinstance(r["Value ($)"], (int, float)) and display_total:
-            r["% of Portfolio"] = round(r["Value ($)"] / display_total * 100, 2)
+        if isinstance(r["Value (£)"], (int, float)) and display_total:
+            r["% of Portfolio"] = round(r["Value (£)"] / display_total * 100, 2)
     df = pd.DataFrame(rows).sort_values("% of Portfolio", ascending=False).reset_index(drop=True)
 
     # ── Allocation chart ──────────────────────────────────────────────────────
@@ -198,7 +207,7 @@ else:
     stocks = df.copy()
     stocks = (stocks.sort_values("% of Portfolio", ascending=True)
               if sort_by == "Size" else stocks.sort_values("Ticker", ascending=False))
-    stocks["Cost (%)"] = (stocks["Cost ($)"] / display_total * 100).round(1)
+    stocks["Cost (%)"] = (stocks["Cost (£)"] / display_total * 100).round(1)
     stocks["Company"]  = stocks["Ticker"].apply(lambda t: "Cash" if t == "CASH" else _company_name(t))
 
     screen_width = streamlit_js_eval(js_expressions="window.innerWidth", key="screen_width")
