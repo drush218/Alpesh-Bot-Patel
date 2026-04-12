@@ -129,15 +129,48 @@ if deposit_stats and deposit_stats.get("total_deposited"):
             years    = (datetime.now(timezone.utc) - first_dt).days / 365.25
         except Exception:
             years = None
-    r1, r2, r3, r4 = st.columns(4)
+    r1, r2, r3 = st.columns(3)
     r1.metric("Portfolio Value", f"£{total:,.2f}")
     r2.metric("Net Deposited",   f"£{deposited:,.2f}")
     r3.metric("Total Return",    f"£{raw_return:+,.2f}", delta=f"{pct_return:+.2f}%", delta_color="normal")
+
     if years and years > 0:
         cagr = ((total / deposited) ** (1 / years) - 1) * 100
-        r4.metric("Annualised (CAGR)", f"{cagr:.2f}%", delta=f"over {years:.1f} yrs", delta_color="off")
+        c1, _ = st.columns([1, 2])
+        c1.metric("Annualised (CAGR)", f"{cagr:.1f}%", delta=f"over {years:.1f} yrs", delta_color="off")
+
+        import yfinance as yf
+        indices = {
+            "S&P 500":     "^GSPC",
+            "Nasdaq 100":  "^NDX",
+            "FTSE 100":    "^FTSE",
+            "German DAX":  "^GDAXI",
+            "Japan (Nikkei 225)": "^N225",
+        }
+
+        @st.cache_data(ttl=86400, show_spinner=False)
+        def _index_cagr(ticker, start, yrs):
+            try:
+                hist = yf.Ticker(ticker).history(start=start, auto_adjust=True)
+                if hist.empty:
+                    return None
+                start_price = hist["Close"].iloc[0]
+                end_price   = hist["Close"].iloc[-1]
+                return ((end_price / start_price) ** (1 / yrs) - 1) * 100
+            except Exception:
+                return None
+
+        with st.expander("Compare to indices"):
+            idx_cols = st.columns(len(indices))
+            for col, (name, sym) in zip(idx_cols, indices.items()):
+                idx_cagr = _index_cagr(sym, first_dt.date().isoformat(), years)
+                if idx_cagr is not None:
+                    col.metric(name, f"{idx_cagr:.1f}%", delta=f"{cagr - idx_cagr:+.1f}pp", delta_color="normal")
+                else:
+                    col.metric(name, "N/A")
     else:
-        r4.metric("Annualised (CAGR)", "N/A")
+        c1, _ = st.columns([1, 2])
+        c1.metric("Annualised (CAGR)", "N/A")
     st.divider()
     m1, m2, m3 = st.columns(3)
     m1.metric("Cost Basis",     f"${invested:,.2f}")
