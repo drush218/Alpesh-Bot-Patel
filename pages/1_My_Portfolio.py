@@ -158,11 +158,11 @@ if not positions:
 else:
     rows = []
     for p in positions:
-        qty        = float(p.get("quantity", 0))
-        avg_price  = float(p.get("averagePrice", 0))
-        curr_price = float(p.get("currentPrice", 0))
-        pos_ppl    = float(p.get("ppl", 0))
-        fx_ppl     = float(p.get("fxPpl", 0))
+        qty        = float(p.get("quantity") or 0)
+        avg_price  = float(p.get("averagePrice") or 0)
+        curr_price = float(p.get("currentPrice") or 0)
+        pos_ppl    = float(p.get("ppl") or 0)
+        fx_ppl     = float(p.get("fxPpl") or 0)
         # Derive current FX rate from T212's own ppl/fxPpl fields.
         # (ppl - fxPpl) = price-movement P&L at current FX rate (GBP)
         # price_pnl_local = same P&L in local currency
@@ -191,7 +191,6 @@ else:
     df = pd.DataFrame(rows).sort_values("% of Portfolio", ascending=False).reset_index(drop=True)
 
     # ── Allocation chart ──────────────────────────────────────────────────────
-    st.subheader("Allocation")
     import yfinance as yf
 
     @st.cache_data(ttl=86400, show_spinner=False)
@@ -202,6 +201,23 @@ else:
             return info.get("longName") or info.get("shortName") or clean
         except Exception:
             return clean
+
+    total_cost_with_cash = invested + free_cash
+    col_v, col_c = st.columns(2)
+    col_v.metric("Stock Value + Cash", f"£{display_total:,.2f}")
+    col_c.metric("Cost Basis + Cash",  f"£{total_cost_with_cash:,.2f}")
+
+    basis_choice = st.radio(
+        "Calculate position size from",
+        ["Stock Value", "Cost Basis"],
+        horizontal=True, key="basis_choice"
+    )
+    selected_basis = display_total if basis_choice == "Stock Value" else total_cost_with_cash
+
+    result_placeholder = st.empty()
+    pct_slider = st.slider("Position size (%)", min_value=1, max_value=100, value=15, step=1, key="pos_pct")
+    position_size = selected_basis * pct_slider / 100
+    result_placeholder.metric("Position Size", f"£{position_size:,.2f}")
 
     sort_by = st.radio("Sort by", ["Size", "A-Z"], horizontal=True, key="alloc_sort")
     stocks = df.copy()

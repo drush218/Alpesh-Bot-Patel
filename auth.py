@@ -24,6 +24,12 @@ def init_supabase() -> Client:
 def show_auth_ui() -> None:
     supabase = init_supabase()
 
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"], [data-testid="collapsedControl"] { display: none; }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.title("Sign in")
     tab_login, tab_register = st.tabs(["Login", "Register"])
 

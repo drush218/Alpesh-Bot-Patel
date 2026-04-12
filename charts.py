@@ -23,9 +23,9 @@ def build_allocation_chart(stocks, is_mobile=False):
         ann_xshift  = 6
         ann_align   = "left"
     else:
-        l, r        = 120, 30
+        l, r        = 160, 30
         font_size   = 12
-        name_max    = 18
+        name_max    = 22
         show_value  = True
         dot_text    = True
         ann_xref    = "x"
@@ -53,29 +53,14 @@ def build_allocation_chart(stocks, is_mobile=False):
 
     # ── Cost-basis line ────────────────────────────────────────────────────────
     equity = stocks[stocks["Ticker"] != "CASH"]
-    pos    = equity[equity["P&L (%)"] >= 0]
-    neg    = equity[equity["P&L (%)"] < 0]
 
-    if not pos.empty:
+    if not equity.empty:
         fig.add_trace(go.Scatter(
-            x=pos["Cost (%)"], y=pos["Ticker"],
-            mode="markers+text" if dot_text else "markers",
-            marker=dict(size=26, symbol="line-ns", color="white",
-                        line=dict(color="white", width=2.5)),
-            text=[f"{v:.1f}% " for v in pos["Cost (%)"]] if dot_text else None,
-            textposition="middle left" if dot_text else None,
-            textfont=dict(size=font_size, color="white",
-                          family="Inter, system-ui, sans-serif"),
-            showlegend=False,
-            hovertemplate="<b>%{y}</b><br>Cost basis: %{x:.1f}% of portfolio<extra></extra>",
-        ))
-    if not neg.empty:
-        fig.add_trace(go.Scatter(
-            x=neg["Cost (%)"], y=neg["Ticker"],
+            x=equity["Cost (%)"], y=equity["Ticker"],
             mode="markers+text" if dot_text else "markers",
             marker=dict(size=26, symbol="line-ns", color="#111827",
                         line=dict(color="#111827", width=2.5)),
-            text=[f" {v:.1f}%" for v in neg["Cost (%)"]] if dot_text else None,
+            text=[f" {v:.1f}%" for v in equity["Cost (%)"]] if dot_text else None,
             textposition="middle right" if dot_text else None,
             textfont=dict(size=font_size, color="#111827",
                           family="Inter, system-ui, sans-serif"),
@@ -156,7 +141,7 @@ def build_allocation_chart(stocks, is_mobile=False):
     else:
         header = (f"<span style='color:#6b7280;font-size:11px'>Value</span>"
                   f"<span style='color:#d1d5db'>  |  </span>"
-                  f"<span style='color:#6b7280;font-size:11px'>Allocation</span>"
+                  f"<span style='color:#6b7280;font-size:11px'>Holdings</span>"
                   f"<span style='color:#d1d5db'>  |  </span>"
                   f"<span style='color:#6b7280;font-size:11px'>P&L</span>")
         fig.add_annotation(
@@ -178,7 +163,7 @@ def build_allocation_chart(stocks, is_mobile=False):
         margin=dict(l=l, r=r, t=30, b=10),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        bargap=0.40,
+        bargap=0.48,
     )
 
     return fig
