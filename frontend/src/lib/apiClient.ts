@@ -11,7 +11,7 @@ class ApiError extends Error {
   }
 }
 
-async function authedFetch(path: string): Promise<Response> {
+async function authedFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -21,6 +21,7 @@ async function authedFetch(path: string): Promise<Response> {
   }
 
   const res = await fetch(`${BASE_URL}${path}`, {
+    ...init,
     headers: { Authorization: `Bearer ${session.access_token}` },
   })
 
@@ -34,6 +35,22 @@ async function authedFetch(path: string): Promise<Response> {
 
 export async function fetchBook(): Promise<BookResponse> {
   const res = await authedFetch('/api/book')
+  return res.json()
+}
+
+export interface MarketRefreshSummary {
+  prices_updated: number
+  prices_fresh: number
+  fx_updated: number
+  fx_fresh: number
+  failed: string[]
+  unmapped: string[]
+  warnings: string[]
+}
+
+/** Pull latest prices/FX into Supabase; anything under 15 min old is skipped server-side. */
+export async function refreshMarket(): Promise<MarketRefreshSummary> {
+  const res = await authedFetch('/api/market/refresh', { method: 'POST' })
   return res.json()
 }
 

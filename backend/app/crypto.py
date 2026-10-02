@@ -2,8 +2,9 @@ from functools import lru_cache
 
 from cryptography.fernet import Fernet
 
+from supabase import Client
+
 from app.config import settings
-from app.supabase_client import get_supabase
 
 
 @lru_cache
@@ -12,9 +13,8 @@ def _fernet() -> Fernet:
     return Fernet(key.encode() if isinstance(key, str) else key)
 
 
-def get_t212_credentials(user_id: str) -> tuple[str | None, str | None]:
-    """Return decrypted (api_key, api_secret) or (None, None) if not saved."""
-    supabase = get_supabase()
+def get_t212_credentials(supabase: Client, user_id: str) -> tuple[str | None, str | None]:
+    """Return decrypted (api_key, api_secret) or (None, None) if not saved. supabase must be a user client."""
     f = _fernet()
 
     try:

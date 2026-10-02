@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { refreshMarket } from './lib/apiClient'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LoginScreen } from './components/auth/LoginScreen'
 import { Header } from './components/layout/Header'
@@ -6,6 +8,12 @@ import { BookScreen } from './components/book/BookScreen'
 
 function AppShell() {
   const { session, loading } = useAuth()
+  const userId = session?.user.id
+
+  useEffect(() => {
+    if (!userId) return
+    refreshMarket().catch((e) => console.warn('Market refresh failed:', e.message))
+  }, [userId])
 
   if (loading) return null
   if (!session) return <LoginScreen />
