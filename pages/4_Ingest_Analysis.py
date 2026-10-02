@@ -34,11 +34,21 @@ if payload:
     if header.get("calibration_note"):
         st.caption(header["calibration_note"])
 
-    if payload["pe_basis"]:
+    if payload.get("forecast"):
+        st.markdown("**Forecast** (v2 model outputs)")
+        fc = pd.DataFrame(payload["forecast"])
+        st.dataframe(
+            fc.pivot_table(index=["scenario"], columns="fiscal_year", values="eps", aggfunc="first"),
+            use_container_width=True,
+        )
+        with st.expander("Full forecast rows"):
+            st.dataframe(fc, hide_index=True, use_container_width=True)
+
+    if payload.get("pe_basis"):
         st.markdown("**PE from earnings**")
         st.dataframe(pd.DataFrame(payload["pe_basis"]), hide_index=True, use_container_width=True)
 
-    if payload["bridge"]:
+    if payload.get("bridge"):
         st.markdown("**Net income bridge** (BAU, long format)")
         bridge_df = pd.DataFrame(payload["bridge"])
         wide = bridge_df.pivot_table(
@@ -46,31 +56,31 @@ if payload:
         ).sort_index(axis=1)
         st.dataframe(wide, use_container_width=True)
 
-    if payload["scenario_drivers"]:
+    if payload.get("scenario_drivers"):
         st.markdown("**Scenario drivers** (LOW / BAU / HIGH)")
         st.dataframe(pd.DataFrame(payload["scenario_drivers"]), hide_index=True, use_container_width=True)
 
-    if payload["scenario_outcomes"]:
+    if payload.get("scenario_outcomes"):
         st.markdown("**Scenario outcomes**")
         st.dataframe(pd.DataFrame(payload["scenario_outcomes"]), hide_index=True, use_container_width=True)
 
-    if payload["forward_pe"]:
+    if payload.get("forward_pe"):
         st.markdown("**Forward PE**")
         fpe_df = pd.DataFrame(payload["forward_pe"])
         fpe_wide = fpe_df.pivot_table(index="scenario", columns="fiscal_year", values="pe", aggfunc="first")
         st.dataframe(fpe_wide, use_container_width=True)
 
-    if payload["sensitivities"]:
+    if payload.get("sensitivities"):
         st.markdown("**External-factor sensitivities**")
         st.dataframe(pd.DataFrame(payload["sensitivities"]), hide_index=True, use_container_width=True)
         if payload.get("sensitivity_anchor"):
             st.caption(payload["sensitivity_anchor"])
 
-    if payload["risks"]:
+    if payload.get("risks"):
         st.markdown("**Risks**")
         st.dataframe(pd.DataFrame(payload["risks"]), hide_index=True, use_container_width=True)
 
-    if payload["peers"]:
+    if payload.get("peers"):
         st.markdown("**Peers**")
         with st.expander("Peer metrics"):
             st.json(payload["peers"])

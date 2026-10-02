@@ -1,6 +1,10 @@
 """
 analysis_db.py
-Supabase writes for the analysis ingestion flow (HandoverFiles/HANDOFF_claude_code.md section 4).
+Supabase writes for the v2 analysis ingestion flow
+(claude-code-handoff/handoff/CLAUDE_CODE_PROMPT_model_v2.md; schema in supabase/migrations/).
+
+Only v2 payloads (```json stock-model block) are stored. Legacy v1 files still parse for preview
+but are rejected here; re-run them through the stock-analysis skill instead.
 
 insert_analysis() stages the new analysis as is_current=false and inserts all child
 rows; only once every child insert succeeds does promote_analysis() flip is_current
@@ -8,18 +12,27 @@ old->new. If any child insert fails, the staged row is deleted (children cascade
 the previously-current analysis is left untouched — postgrest has no multi-statement
 transaction here, so this stage/promote split is what keeps a failed ingest from ever
 leaving a ticker without a valid current analysis.
+
+User-owned data (scorecards, user_scenarios) is keyed on instrument, never on analysis, and
+ingest never writes to it, so re-ingesting leaves it untouched. The suggested scorecard lives
+in analyses.model and so moves with each new analysis.
 """
 
-from datetime import date
+import re
 
 from auth import init_supabase
+
+LEVER_COLUMNS = ("base", "lever_name", "exposure", "exposure_pct", "speed", "direction",
+                 "macro_factor_code", "channel_group", "watch_metric", "current_reading",
+                 "pushes_low", "pushes_high")
 
 
 def _non_null(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def upsert_instrument(ticker: str, company: str | None, exchange: str | None, currency: str | None) -> None:
+def upsert_instrument(ticker: str, company: str | None, exchange: str | None, currency: str | None) -> int:
+    """Create or update the instrument by ticker. Returns its id."""
     supabase = init_supabase()
     row = _non_null({
         "ticker": ticker,
@@ -27,35 +40,34 @@ def upsert_instrument(ticker: str, company: str | None, exchange: str | None, cu
         "exchange": exchange,
         "currency": currency,
     })
-    supabase.table("instruments").upsert(row, on_conflict="ticker").execute()
+    resp = supabase.table("instruments").upsert(row, on_conflict="ticker").execute()
+    return resp.data[0]["id"]
 
 
-def find_existing_analysis(ticker: str, content_hash: str) -> str | None:
+def find_existing_analysis(instrument_id: int, content_hash: str) -> int | None:
     supabase = init_supabase()
     resp = (
         supabase.table("analyses")
         .select("id")
-        .eq("ticker", ticker)
+        .eq("instrument_id", instrument_id)
         .eq("content_hash", content_hash)
         .execute()
     )
     return resp.data[0]["id"] if resp.data else None
 
 
-def insert_analysis(payload: dict) -> str:
+def insert_analysis(payload: dict, instrument_id: int) -> int:
     """Stage the analysis (is_current=false) and all child rows. Returns the new analysis id."""
     supabase = init_supabase()
     header = payload["analysis"]
-    ticker = header["ticker"]
 
     analysis_row = {
-        "ticker": ticker,
-        "analysis_date": header.get("price_date") or date.today().isoformat(),
-        "price_at_analysis": header.get("price"),
+        "instrument_id": instrument_id,
+        "schema_version": payload["schema_version"],
+        "model": payload["model"],
+        "reporting_currency": header.get("data_currency"),
         "price_currency": header.get("price_currency"),
-        "data_currency": header.get("data_currency"),
-        "calibration_note": header.get("calibration_note"),
-        "schema_version": payload.get("schema_version", 1),
+        "data_as_of": header.get("data_as_of"),
         "content_hash": payload["content_hash"],
         "raw_markdown": payload["raw_markdown"],
         "narrative": payload.get("narrative") or {},
@@ -75,98 +87,85 @@ def insert_analysis(payload: dict) -> str:
     return analysis_id
 
 
-def _insert_children(supabase, analysis_id: str, payload: dict) -> None:
-    if payload["pe_basis"]:
-        supabase.table("analysis_pe_basis").insert(
-            [{**r, "analysis_id": analysis_id} for r in payload["pe_basis"]]
-        ).execute()
+def _insert_children(supabase, analysis_id: int, payload: dict) -> None:
+    def insert(table, rows):
+        if rows:
+            supabase.table(table).insert([{**r, "analysis_id": analysis_id} for r in rows]).execute()
 
-    if payload["bridge"]:
-        supabase.table("analysis_bridge").insert([
-            {
-                "analysis_id": analysis_id,
-                "scenario": "BAU",
-                "fiscal_year": r["fiscal_year"],
-                "is_actual": r["is_actual"],
-                "line_key": r["line_key"],
-                "line_label": r["line_label"],
-                "value": r["value"],
-                "unit": r["unit"],
-                "raw": r["raw"],
-            }
-            for r in payload["bridge"]
-        ]).execute()
-
-    if payload["scenario_outcomes"]:
-        supabase.table("analysis_scenario_outcomes").insert([
-            {
-                "analysis_id": analysis_id,
-                "scenario": r["scenario"],
-                "fiscal_year": r["fiscal_year"],
-                "metric": r["metric"],
-                "value": r["value"],
-            }
-            for r in payload["scenario_outcomes"]
-        ]).execute()
-
-    if payload["scenario_drivers"]:
-        supabase.table("analysis_scenario_drivers").insert(
-            [{**r, "analysis_id": analysis_id} for r in payload["scenario_drivers"]]
-        ).execute()
-
-    if payload["scenario_assumptions"]:
-        supabase.table("analysis_scenario_assumptions").insert(
-            [{**r, "analysis_id": analysis_id} for r in payload["scenario_assumptions"]]
-        ).execute()
-
-    if payload["forward_pe"]:
-        supabase.table("analysis_forward_pe").insert([
-            {
-                "analysis_id": analysis_id,
-                "scenario": r["scenario"],
-                "fiscal_year": r["fiscal_year"],
-                "pe": r["pe"],
-            }
-            for r in payload["forward_pe"]
-        ]).execute()
-
-    if payload["sensitivities"]:
-        supabase.table("analysis_sensitivities").insert(
-            [{**r, "analysis_id": analysis_id} for r in payload["sensitivities"]]
-        ).execute()
-
-    if payload["risks"]:
-        supabase.table("analysis_risks").insert(
-            [{**r, "analysis_id": analysis_id} for r in payload["risks"]]
-        ).execute()
-
-    if payload["peers"]:
-        supabase.table("analysis_peers").insert(
-            [{**r, "analysis_id": analysis_id} for r in payload["peers"]]
-        ).execute()
+    insert("analysis_forecast", payload["forecast"])
+    insert("analysis_segment_forecast", payload["segment_forecast"])
+    insert("analysis_calendar", payload["calendar"])
+    insert("analysis_macro", payload["macro"])
+    insert("analysis_backtest_requests", payload["backtest_requests"])
+    insert("analysis_levers", [{k: l.get(k) for k in LEVER_COLUMNS} for l in payload["levers"]])
 
 
-def promote_analysis(analysis_id: str, ticker: str) -> None:
+def promote_analysis(analysis_id: int, instrument_id: int) -> None:
     supabase = init_supabase()
-    supabase.table("analyses").update({"is_current": False}).eq("ticker", ticker).eq("is_current", True).execute()
+    supabase.table("analyses").update({"is_current": False}).eq("instrument_id", instrument_id).eq("is_current", True).execute()
     supabase.table("analyses").update({"is_current": True}).eq("id", analysis_id).execute()
 
 
-def confirm_ingest(payload: dict) -> tuple[str, bool]:
+def record_factor_codes(payload: dict, analysis_id: int, ticker: str) -> None:
+    """
+    Proposed factors: insert new codes as pending; for known proposals, append the ticker.
+    commodity_* codes are on the parser's fixed list by pattern, so they go straight into
+    macro_factors rather than waiting for approval.
+    """
+    supabase = init_supabase()
+    approved = {r["code"] for r in supabase.table("macro_factors").select("code").execute().data}
+
+    used = {x["factor_code"] for x in payload["macro"]}
+    used |= {l["macro_factor_code"] for l in payload["levers"] if l.get("macro_factor_code")}
+    for code in sorted(used - approved):
+        if re.fullmatch(r"commodity_[a-z0-9_]+", code):
+            supabase.table("macro_factors").insert({"code": code, "name": code}).execute()
+            approved.add(code)
+
+    for f in payload.get("proposed_factors") or []:
+        code = f["code"]
+        if code in approved:
+            continue
+        resp = supabase.table("macro_factor_proposals").select("proposed_by_tickers").eq("code", code).execute()
+        if resp.data:
+            tickers = resp.data[0]["proposed_by_tickers"] or []
+            if ticker not in tickers:
+                supabase.table("macro_factor_proposals").update(
+                    {"proposed_by_tickers": tickers + [ticker]}
+                ).eq("code", code).execute()
+        else:
+            supabase.table("macro_factor_proposals").insert(_non_null({
+                "code": code,
+                "name": f.get("name"),
+                "series": f.get("series"),
+                "provider": f.get("provider"),
+                "scope": f.get("scope"),
+                "rationale": f.get("rationale"),
+                "first_proposed_by": analysis_id,
+                "proposed_by_tickers": [ticker],
+            })).execute()
+
+
+def confirm_ingest(payload: dict) -> tuple[int, bool]:
     """
     Write payload to Supabase. Returns (analysis_id, already_existed).
-    Dedupes on (ticker, content_hash) per HANDOFF section 4.
+    Dedupes on (instrument, content_hash).
     """
+    if payload.get("schema_version") != 2:
+        raise ValueError("Only v2 analyses (```json stock-model block) are stored. "
+                         "Re-run this file through the stock-analysis skill.")
+
     header = payload["analysis"]
     ticker = header["ticker"]
     if not ticker:
-        raise ValueError("Cannot ingest: no ticker parsed from the markdown header.")
+        raise ValueError("Cannot ingest: no ticker in meta.ticker.")
 
-    existing_id = find_existing_analysis(ticker, payload["content_hash"])
+    instrument_id = upsert_instrument(ticker, header.get("company"), header.get("exchange"), header.get("price_currency"))
+    existing_id = find_existing_analysis(instrument_id, payload["content_hash"])
     if existing_id:
         return existing_id, True
 
-    upsert_instrument(ticker, header.get("company"), header.get("exchange"), header.get("price_currency"))
-    analysis_id = insert_analysis(payload)
-    promote_analysis(analysis_id, ticker)
+    analysis_id = insert_analysis(payload, instrument_id)
+    promote_analysis(analysis_id, instrument_id)
+    record_factor_codes(payload, analysis_id, ticker)
     return analysis_id, False
