@@ -545,12 +545,220 @@ def parse_narrative(md: str) -> dict:
     return out
 
 
+# ---------------------------------------------------------------- v2 (json stock-model block)
+#
+# v2 files carry a ```json stock-model block rendered by the skill's model.py. That block is
+# the source of truth, so v2 never scrapes the markdown tables. Enum lists are copied from
+# model.py on purpose (no cross-repo import); keep them in step with the skill.
+
+_V2_BLOCK_RE = re.compile(r"```json stock-model\s*\n(.*?)\n```", re.S)
+
+V2_SOURCES = {"guidance", "filing", "assumption"}
+V2_SHARE_SOURCES = {"none", "issuance_declared", "buyback_executed", "issuance_and_buyback"}
+V2_DIRECTIONS = {"bull", "bear", "neutral"}
+V2_STRENGTHS = {"negligible", "mild", "medium", "strong"}
+V2_SPEEDS = {"immediate", "near", "lagged"}
+V2_EXPOSURES = {"minor", "partial", "dominant"}
+V2_EVENT_TYPES = {"earnings", "trading_update", "agm", "ex_dividend", "dividend_pay",
+                  "capital_markets_day", "debt_maturity", "guidance", "index", "other"}
+V2_MACRO_FACTORS = {"rates_policy", "rates_10y", "fx_usd", "oil", "natgas", "labour",
+                    "consumer_spend", "credit_spreads", "inflation", "china_activity"}
+V2_SCENARIOS = ("low", "bau", "high")
+
+
+class AnalysisValidationError(ValueError):
+    """Raised when a v2 file fails validation. .errors holds every problem found."""
+
+    def __init__(self, errors):
+        self.errors = list(errors)
+        super().__init__("v2 stock-model rejected:\n- " + "\n- ".join(self.errors))
+
+
+def _v2_is_factor(code, proposed) -> bool:
+    return (code in V2_MACRO_FACTORS or code in proposed
+            or (isinstance(code, str) and re.fullmatch(r"commodity_[a-z0-9_]+", code) is not None))
+
+
+def _v2_validate(m: dict) -> list:
+    errs = []
+
+    def enum(value, allowed, where):
+        if value not in allowed:
+            errs.append(f"{where}: {value!r} not in {sorted(allowed)}")
+
+    if m.get("schema_version") != 2:
+        errs.append(f"schema_version must be 2, got {m.get('schema_version')!r}")
+
+    proposed = {f.get("code") for f in m.get("proposed_factors", [])}
+    meta = m.get("meta", {})
+    years = meta.get("forecast_years") or []
+    if not meta.get("ticker"):
+        errs.append("meta.ticker missing")
+    if not years:
+        errs.append("meta.forecast_years missing")
+
+    for s in m.get("revenue", {}).get("segments", []):
+        for i, c in enumerate(s.get("growth", [])):
+            enum(c.get("source"), V2_SOURCES, f"revenue.{s.get('name')}.growth[{i}].source")
+    for key in ("operating_margin", "net_interest", "tax_rate", "nci_pct"):
+        for i, c in enumerate(m.get(key, [])):
+            enum(c.get("source"), V2_SOURCES, f"{key}[{i}].source")
+    for i, c in enumerate(m.get("shares", {}).get("annual_change", [])):
+        enum(c.get("source"), V2_SHARE_SOURCES, f"shares.annual_change[{i}].source")
+
+    for i, e in enumerate(m.get("calendar", [])):
+        enum(e.get("type"), V2_EVENT_TYPES, f"calendar[{i}].type")
+        try:
+            date.fromisoformat(e.get("date", ""))
+        except (TypeError, ValueError):
+            errs.append(f"calendar[{i}].date: ISO date required, got {e.get('date')!r}")
+
+    for i, x in enumerate(m.get("macro", [])):
+        if not _v2_is_factor(x.get("factor"), proposed):
+            errs.append(f"macro[{i}].factor: unknown factor {x.get('factor')!r} "
+                        "(not on fixed list or in proposed_factors)")
+        enum(x.get("direction"), V2_DIRECTIONS, f"macro[{i}].direction")
+        enum(x.get("strength"), V2_STRENGTHS, f"macro[{i}].strength")
+        enum(x.get("speed"), V2_SPEEDS, f"macro[{i}].speed")
+    keys = [(x.get("factor"), x.get("channel")) for x in m.get("macro", [])]
+    if len(keys) != len(set(keys)):
+        errs.append("macro: duplicate factor+channel row")
+
+    for i, b in enumerate(m.get("backtests", [])):
+        if not _v2_is_factor(b.get("factor"), proposed):
+            errs.append(f"backtests[{i}].factor: unknown factor {b.get('factor')!r}")
+
+    for i, l in enumerate(m.get("levers", [])):
+        enum(l.get("base"), {"revenue", "cost"}, f"levers[{i}].base")
+        enum(l.get("exposure"), V2_EXPOSURES, f"levers[{i}].exposure")
+        enum(l.get("speed"), V2_SPEEDS, f"levers[{i}].speed")
+        enum(l.get("direction"), {"bull", "bear", None}, f"levers[{i}].direction")
+        code = l.get("macro_factor_code")
+        if code and not _v2_is_factor(code, proposed):
+            errs.append(f"levers[{i}].macro_factor_code: unknown factor {code!r}")
+
+    for i, f in enumerate(m.get("proposed_factors", [])):
+        enum(f.get("scope"), {"master", "company"}, f"proposed_factors[{i}].scope")
+
+    outputs = m.get("outputs", {}).get("scenarios", {})
+    for scen in V2_SCENARIOS:
+        rows = outputs.get(scen)
+        if not isinstance(rows, list) or len(rows) != len(years):
+            errs.append(f"outputs.scenarios.{scen}: need {len(years)} rows (one per forecast year)")
+    return errs
+
+
+def _v2_lever_rows(levers: list) -> list:
+    """channel_group = macro_factor_code when 2+ levers share that code, else null (no token heuristic)."""
+    counts = {}
+    for l in levers:
+        code = l.get("macro_factor_code")
+        if code:
+            counts[code] = counts.get(code, 0) + 1
+    out = []
+    for l in levers:
+        code = l.get("macro_factor_code")
+        out.append({**l, "channel_group": code if code and counts[code] >= 2 else None})
+    return out
+
+
+def parse_analysis_v2(md: str, model: dict, source_name: str | None = None) -> dict:
+    errs = _v2_validate(model)
+    if errs:
+        raise AnalysisValidationError(errs)
+
+    meta = model["meta"]
+    years = meta["forecast_years"]
+    outputs = model["outputs"]["scenarios"]
+    segments = model["revenue"]["segments"]
+
+    forecast, segment_forecast = [], []
+    for scen in V2_SCENARIOS:
+        for i, r in enumerate(outputs[scen]):
+            forecast.append({
+                "scenario": scen,
+                "fiscal_year": r["year"],
+                "ordinal": i + 1,
+                "revenue": r["revenue"],
+                "revenue_growth_pct": r["revenue_growth_pct"],
+                "operating_margin_pct": r["operating_margin_pct"],
+                "operating_income": r["operating_income"],
+                "net_income": r["net_income"],
+                "shares_diluted": r["shares_diluted"],
+                "eps": r["eps"],
+            })
+            for s in segments:
+                seg_out = r["segments"][s["name"]]
+                cell = s["growth"][i]
+                segment_forecast.append({
+                    "scenario": scen,
+                    "fiscal_year": years[i],
+                    "segment": s["name"],
+                    "growth_pct": seg_out["growth_pct"],
+                    "revenue": seg_out["revenue"],
+                    "source": cell.get("source"),
+                    "ref": cell.get("ref"),
+                })
+
+    return {
+        "schema_version": 2,
+        "parsed_at": datetime.now(timezone.utc).isoformat(),
+        "source_name": source_name,
+        "content_hash": hashlib.sha256(md.encode()).hexdigest()[:16],
+        # Same header keys as v1 so ingest code can treat both alike. No price in v2 files.
+        "analysis": {
+            "company": meta.get("company"),
+            "ticker": meta.get("ticker"),
+            "price": None,
+            "price_currency": meta.get("price_currency"),
+            "price_date": None,
+            "data_currency": meta.get("reporting_currency"),
+            "exchange": meta.get("exchange"),
+            "calibration_note": meta.get("structure_note"),
+            "data_as_of": meta.get("data_as_of"),
+        },
+        "model": model,
+        "forecast": forecast,
+        "segment_forecast": segment_forecast,
+        "calendar": [
+            {"event_date": e["date"], "event": e.get("event"), "type": e["type"],
+             "confirmed": e.get("confirmed"), "source": e.get("source")}
+            for e in model.get("calendar", [])
+        ],
+        "macro": [
+            {"factor_code": x["factor"], "channel": x.get("channel"), "direction": x["direction"],
+             "strength": x["strength"], "speed": x["speed"], "ref": x.get("ref")}
+            for x in model.get("macro", [])
+        ],
+        "backtest_requests": [
+            {"factor_code": b["factor"], "series": b.get("series"), "provider": b.get("provider"),
+             "frequency": b.get("frequency", "weekly"), "lookback": b.get("lookback", "5y"),
+             "hypothesis": b.get("hypothesis")}
+            for b in model.get("backtests", [])
+        ],
+        "levers": _v2_lever_rows(model.get("levers", [])),
+        "proposed_factors": model.get("proposed_factors", []),
+        "scorecard_suggested": model.get("scorecard_suggested"),
+        "narrative": {"bottom_line": model["bottom_line"]} if model.get("bottom_line") else {},
+        "raw_markdown": md,
+        "warnings": [],
+    }
+
+
 # ---------------------------------------------------------------- orchestrator
 
 REQUIRED = ["pe_basis", "bridge", "forward_pe", "sensitivities"]
 
 
 def parse_analysis(md: str, source_name: str | None = None) -> dict:
+    v2 = _V2_BLOCK_RE.search(md)
+    if v2:
+        try:
+            model = json.loads(v2.group(1))
+        except json.JSONDecodeError as e:
+            raise AnalysisValidationError([f"stock-model block is not valid JSON: {e}"]) from e
+        return parse_analysis_v2(md, model, source_name)
+
     blocks = extract_blocks(md)
     header = parse_header(md, blocks)
     bridge, unmapped = parse_bridge(blocks)
