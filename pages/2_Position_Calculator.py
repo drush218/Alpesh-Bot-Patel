@@ -150,24 +150,21 @@ if st.button("Calculate Position Size", type="primary", use_container_width=True
         # ── Step-by-step report ───────────────────────────────────────────────
         st.subheader("Step-by-Step Breakdown")
 
-        with st.expander("Step 1 — Upside & Downside Percentages", expanded=True):
+        with st.expander("Step 1 — Upside, Downside & Risk/Reward", expanded=True):
             st.markdown(f"""
 - **Implied Upside** = (Target − Current) ÷ Current
   = (${PriceTarget:.2f} − ${CurrentPrice:.2f}) ÷ ${CurrentPrice:.2f} = **{ImpliedUpside*100:.2f}%**
 
-- **Implied Downside** = |( Stop − Current) ÷ Current|
-  = |(${StopLoss:.2f} − ${CurrentPrice:.2f}) ÷ ${CurrentPrice:.2f}| = **{ImpliedDownside*100:.2f}%**
-""")
+- **Implied Downside** = (Stop − Current) ÷ Current
+  = (${StopLoss:.2f} − ${CurrentPrice:.2f}) ÷ ${CurrentPrice:.2f} = **{ImpliedDownside*100:.2f}%**
 
-        with st.expander("Step 2 — Risk / Reward Ratio", expanded=True):
-            st.markdown(f"""
 - **R:R** = Implied Upside ÷ Implied Downside
   = {ImpliedUpside*100:.2f}% ÷ {ImpliedDownside*100:.2f}% = **{R2R:.2f} : 1**
 
 For every 1% of downside risk, you have **{R2R:.2f}%** of upside potential.
 """)
 
-        with st.expander("Step 3 — Maximum Acceptable Loss", expanded=True):
+        with st.expander("Step 2 — Maximum Acceptable Loss", expanded=True):
             st.markdown(f"""
 - **Max Loss ($)** = Max Loss % × Portfolio Value
   = {MaxLoss_pct:.1f}% × ${PortfolioValue:,.2f} = **${MaxLoss:,.2f}**
@@ -175,7 +172,7 @@ For every 1% of downside risk, you have **{R2R:.2f}%** of upside potential.
 You are willing to lose no more than **${MaxLoss:,.2f}** on this trade.
 """)
 
-        with st.expander("Step 4 — MACD Score & Downside Risk Factor", expanded=True):
+        with st.expander("Step 3 — MACD Score & Downside Risk Factor", expanded=True):
             st.markdown(f"""
 - **MACD Score** = Monthly ({MACD_Monthly}) + Weekly ({MACD_Weekly}) = **{MACD_Score}**
 
@@ -189,7 +186,7 @@ You are willing to lose no more than **${MaxLoss:,.2f}** on this trade.
 A higher factor means weaker momentum confirmation, so the position size is reduced more aggressively.
 """)
 
-        with st.expander("Step 5 — Upside Reward Factor", expanded=True):
+        with st.expander("Step 4 — Upside Reward Factor", expanded=True):
             if DownsideRiskFactor == 1.0:
                 st.markdown(f"""
 - MACD Score is 2 (strong confirmation), so reward factor scales with the R:R ratio.
@@ -201,7 +198,7 @@ A higher factor means weaker momentum confirmation, so the position size is redu
 - **Upside Reward Factor** = **{UpsideRewardFactor:.1f}** (flat, no amplification)
 """)
 
-        with st.expander("Step 6 — Adjustment Factor", expanded=True):
+        with st.expander("Step 5 — Adjustment Factor", expanded=True):
             st.markdown(f"""
 - **Adjustment Factor** = Upside Reward Factor ÷ Downside Risk Factor
   = {UpsideRewardFactor:.4f} ÷ {DownsideRiskFactor} = **{AdjustmentFactor:.4f}**
@@ -209,7 +206,7 @@ A higher factor means weaker momentum confirmation, so the position size is redu
 This factor scales the base position size up or down based on the combined MACD signal.
 """)
 
-        with st.expander("Step 7 — Base Investment Value", expanded=True):
+        with st.expander("Step 6 — Base Investment Value", expanded=True):
             st.markdown(f"""
 - **Base Investment** = Max Loss ÷ Implied Downside
   = ${MaxLoss:,.2f} ÷ {ImpliedDownside:.4f} = **${InvestmentValue:,.2f}**
@@ -217,7 +214,7 @@ This factor scales the base position size up or down based on the combined MACD 
 This is the raw position size at which hitting the stop loss would cost exactly ${MaxLoss:,.2f}.
 """)
 
-        with st.expander("Step 8 — Adjusted Investment Value", expanded=True):
+        with st.expander("Step 7 — Adjusted Investment Value", expanded=True):
             st.markdown(f"""
 - **Adjusted Investment** = Base Investment × Adjustment Factor
   = ${InvestmentValue:,.2f} × {AdjustmentFactor:.4f} = **${InvestmentValue_Adj:,.2f}**

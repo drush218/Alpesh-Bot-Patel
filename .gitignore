@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.ipynb
 *.csv
+node_modules/
+frontend/dist/
+backend/venv/
