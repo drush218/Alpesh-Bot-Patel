@@ -20,10 +20,16 @@ async function authedFetch(path: string, init: RequestInit = {}): Promise<Respon
     throw new ApiError(401, 'Not signed in')
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  })
+  const send = (token: string) =>
+    fetch(`${BASE_URL}${path}`, { ...init, headers: { Authorization: `Bearer ${token}` } })
+
+  let res = await send(session.access_token)
+
+  // A stored token can expire just before supabase-js refreshes it; refresh once and retry.
+  if (res.status === 401) {
+    const { data } = await supabase.auth.refreshSession()
+    if (data.session) res = await send(data.session.access_token)
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))

@@ -1,9 +1,12 @@
+import logging
 from dataclasses import dataclass
 
 from fastapi import Depends, Header, HTTPException
 from supabase import Client
 
 from app.supabase_client import get_supabase, user_client
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def _bearer_token(authorization: str = Header(...)) -> str:
@@ -22,7 +25,8 @@ def get_current_user_id(token: str = Depends(_bearer_token)) -> str:
     """
     try:
         resp = get_supabase().auth.get_user(token)
-    except Exception:
+    except Exception as e:
+        logger.warning("Token rejected: %s: %s", type(e).__name__, e)
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
     if not resp or not resp.user:
