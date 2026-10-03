@@ -1,4 +1,6 @@
 import base64
+import threading
+import time
 
 import requests
 
@@ -14,18 +16,37 @@ def _headers(api_key: str, api_secret: str) -> dict:
     return {"Authorization": f"Basic {encoded}"}
 
 
+# T212 rate-limits these endpoints to roughly one call per few seconds. Book load and the
+# market refresh both need positions (and React dev mode fires effects twice), so responses
+# are shared for CACHE_TTL; the per-key lock makes concurrent callers wait for one fetch.
+CACHE_TTL = 10.0
+_cache: dict[tuple[str, str], tuple[float, object]] = {}
+_locks: dict[tuple[str, str], threading.Lock] = {}
+_locks_guard = threading.Lock()
+
+
+def _cached_get(path: str, api_key: str, api_secret: str, label: str):
+    key = (path, api_key)
+    with _locks_guard:
+        lock = _locks.setdefault(key, threading.Lock())
+    with lock:
+        hit = _cache.get(key)
+        if hit and time.monotonic() - hit[0] < CACHE_TTL:
+            return hit[1]
+        resp = requests.get(f"{BASE_URL}{path}", headers=_headers(api_key, api_secret), timeout=10)
+        if not resp.ok:
+            raise T212Error(f"T212 {label} API error {resp.status_code}: {resp.text}")
+        data = resp.json()
+        _cache[key] = (time.monotonic(), data)
+        return data
+
+
 def get_cash(api_key: str, api_secret: str) -> dict:
-    resp = requests.get(f"{BASE_URL}/api/v0/equity/account/cash", headers=_headers(api_key, api_secret), timeout=10)
-    if not resp.ok:
-        raise T212Error(f"T212 cash API error {resp.status_code}: {resp.text}")
-    return resp.json()
+    return _cached_get("/api/v0/equity/account/cash", api_key, api_secret, "cash")
 
 
 def get_positions(api_key: str, api_secret: str) -> list[dict]:
-    resp = requests.get(f"{BASE_URL}/api/v0/equity/portfolio", headers=_headers(api_key, api_secret), timeout=10)
-    if not resp.ok:
-        raise T212Error(f"T212 portfolio API error {resp.status_code}: {resp.text}")
-    return resp.json()
+    return _cached_get("/api/v0/equity/portfolio", api_key, api_secret, "portfolio")
 
 
 def derive_position_gbp(position: dict) -> dict:
