@@ -6,6 +6,7 @@ from supabase import Client
 
 from app.crypto import get_t212_credentials
 from app.services import t212_client
+from app.services.analysis_view import staleness
 from app.services.market_data import parse_t212_ticker
 
 
@@ -16,8 +17,8 @@ def status(db: Client, user_id: str) -> dict:
         "warnings": [],
     }
 
-    current = db.table("analyses").select("id, instrument_id, data_as_of, created_at, warnings, instruments(ticker, company)").eq("is_current", True).execute().data
-    stale = {r["analysis_id"]: r for r in db.table("v_analysis_staleness").select("analysis_id, is_stale, last_earnings").execute().data}
+    current = db.table("analyses").select("id, instrument_id, model, data_as_of, created_at, warnings, instruments(ticker, company)").eq("is_current", True).execute().data
+    stale = {r["id"]: staleness(r["model"], r.get("data_as_of")) for r in current}
     analyses = sorted(({
         "ticker": r["instruments"]["ticker"],
         "company": r["instruments"].get("company"),

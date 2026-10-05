@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.deps import CurrentUser, get_current_user
-from app.services import scenarios, workspace
+from app.services import analysis_view, scenarios, workspace
 from app.services.analysis_lookup import modelled_tickers
 
 router = APIRouter()
@@ -31,6 +31,15 @@ def _not_found(e: workspace.NotFound):
 def list_analysed(user: CurrentUser = Depends(get_current_user)) -> list[str]:
     """Tickers that have a current analysis, for the Analysis nav."""
     return sorted(modelled_tickers(user.db))
+
+
+@router.get("/analysis/{ticker}")
+def get_analysis(ticker: str, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Status, position, macro links, levers, calendar and what changed for the current analysis."""
+    try:
+        return analysis_view.analysis_view(user.db, user.id, ticker)
+    except workspace.NotFound as e:
+        _not_found(e)
 
 
 @router.post("/analysis/{ticker}/workspace")

@@ -2,7 +2,7 @@ import { supabase } from './supabaseClient'
 import type { BookResponse } from '../types/book'
 import type { AccountSummary, BenchmarksResponse } from '../types/account'
 import type { IngestPreview, SettingsStatus } from '../types/settings'
-import type { Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
+import type { AnalysisView, Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -65,6 +65,10 @@ const enc = encodeURIComponent
 
 export async function listAnalysed(): Promise<string[]> {
   return (await authedFetch('/api/analysis')).json()
+}
+
+export async function fetchAnalysis(ticker: string): Promise<AnalysisView> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}`)).json()
 }
 
 /** Current analysis with unsaved edits applied; outputs rerun server-side by the same engine as the skill. */
