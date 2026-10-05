@@ -1,7 +1,47 @@
 # Claude Working Notes — Alpesh Bot Patel
 
 ## Project Overview
-Streamlit app connected to Trading212 API. Shows live portfolio with allocation chart, position calculator, and settings.
+Two apps share this repo and the same Supabase project ("Stock Dashboard", ref `xyoqgxnuuajsxrtkoeux`):
+
+1. **Portfolio Terminal (v2, current)** — FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`). Six screens: Dashboard, Book, Analysis, Macro, Sizer, Settings. Built from `design_handoff_portfolio_terminal/` (design spec + prototype) and `claude-code-handoff/handoff/CLAUDE_CODE_PROMPT_model_v2.md` (stock-model v2 spec).
+2. **Streamlit app (legacy)** — `streamlit run app.py`. Still works; don't delete until v2 has fully replaced it.
+
+As of Oct 2026 the v2 work lives on branch `claude/status-check-757914`, not yet merged to `main`.
+
+---
+
+## Portfolio Terminal (v2)
+
+**Run:** `.claude/launch.json` has `backend` (uvicorn :8000) and `frontend` (vite :5173) — start both via the preview tools. Needs `backend/.env` and `frontend/.env` (copy from `.env.example`; gitignored), `backend/venv` (`pip install -r backend/requirements.txt`) and `npm --prefix frontend ci`. The user signs in themselves — never enter their password.
+
+**Tests:** `backend/venv/Scripts/python.exe -m unittest discover -s tests` (system Python lacks the backend deps). Frontend: `npx tsc -b` and `npm run lint` in `frontend/`. Restart the backend after backend changes (no `--reload`).
+
+**Backend layout** (`backend/app/`): `routers/` thin FastAPI endpoints, `services/` logic. Every request queries Supabase as the signed-in user (`deps.get_current_user` → `user.db`) so RLS applies.
+- `services/workspace.py` — current analysis lookup, scenario preview/save/load (rebase onto newer analyses), `latest_price` (with EPS→quote FX)
+- `services/scorecard.py` — append-only user scorecards; never prefilled
+- `services/ingest.py` — analysis upload; wraps root `markdown_to_json.py` (parser) + `analysis_db.confirm_ingest(payload, supabase=db)` (stage → promote write path, shared with Streamlit)
+- `services/analysis_view.py` — Analysis screen payload; **staleness = an earnings date after the analysis's `data_as_of` has passed** (not upload date; the SQL view `v_analysis_staleness` still uses created_at and is unused)
+- `services/macro_data.py` — FRED CSV series → `macro_factor_moves` (1-month change, up/down/flat). `china_activity` has no source (FRED series ended 2024)
+- `services/macro_view.py` — analysis macro links × factor moves → verdicts, matrix, book tilt
+- `services/expected_move.py` — **light** expected-move check: index-only OLS, 250d fit, flag |z| ≥ 2.5, results days labelled "earnings". User chose light over the full 4-factor model. Purpose: highlight holdings worth running an analysis on
+- `services/dashboard.py` — tiles; Yahoo quotes/calendar/dividends, parallel + cached
+- `services/deposits.py` — deposit stats (same `user_settings` cache as Streamlit)
+- `services/index_map.py` — hand-maintained ticker→index map (current holdings mapped Oct 2026; ONON → SPX is a judgement call)
+- `services/stock_model.py` — vendored skill engine; don't edit, re-copy from the skill
+
+**Trading212 tickers:** use `market_data.parse_t212_ticker` (`BGEOl_EQ` → `BGEO` / `BGEO.L`, `MSFT_US_EQ` → `MSFT`). Never `split("_")` — it breaks London names.
+
+**Frontend:** plain CSS tokens (`styles/tokens.css`), mostly inline styles plus `styles/book.css` / `styles/analysis.css`. Screen switching in `App.tsx`; nav in `components/layout/Header.tsx`. Approved Analysis workspace preview: https://claude.ai/artifact/KhSvpd8SiwW8jQcPvBwDhQ
+
+**Adding analyses:** stock-analysis skill → `.md` with a ```json stock-model block → save under `analyses/` → parse with the real parser and show the user the preview → on their OK, write through the same ingest path (Settings upload, or connector SQL generated from `confirm_ingest`). Never hand-write analysis rows. Confirm before every Supabase write. v2 files carry no base-year actuals, risks or peers.
+
+**Supabase migrations:** in `supabase/migrations/`; show the user any migration before applying it.
+
+**Open items:** money-weighted CAGR on the Dashboard (current CAGR treats all deposits as day one — inherited from Streamlit); ingest the user's analyses (11 of 12 holdings unmodelled); merge to `main`.
+
+---
+
+## Streamlit app (legacy)
 
 **Run command:** `streamlit run app.py`
 
