@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from supabase import Client
 
 from app.crypto import get_t212_credentials
-from app.services import t212_client
+from app.services import expected_move, t212_client
+from app.services.index_map import index_for_ticker
 from app.services.analysis_view import staleness
 from app.services.market_data import parse_t212_ticker
 
@@ -31,10 +32,21 @@ def status(db: Client, user_id: str) -> dict:
     out["analyses"] = analyses
 
     held: list[str] = []
+    out["model"] = []
     if api_key:
         _, secret = get_t212_credentials(db, user_id)
         try:
-            held = sorted({parse_t212_ticker(p["ticker"])[0] for p in t212_client.get_positions(api_key, secret or "") if p.get("ticker")})
+            positions = t212_client.get_positions(api_key, secret or "")
+            held = sorted({parse_t212_ticker(p["ticker"])[0] for p in positions if p.get("ticker")})
+            fits = expected_move.explain_holdings([
+                {"ticker": t, "yahoo": parse_t212_ticker(p["ticker"])[1], "index": index_for_ticker(t)}
+                for p in positions for t in [parse_t212_ticker(p["ticker"])[0]]
+            ])
+            out["model"] = sorted(({
+                "ticker": t, "index": (m or {}).get("index_code"), "beta": (m or {}).get("betas", {}).get("index"),
+                "r2": (m or {}).get("r2"), "n": (m or {}).get("n"), "fit_from": (m or {}).get("fit_from"),
+                "fit_to": (m or {}).get("fit_to"), "sigma_pct": (m or {}).get("sigma_pct"),
+            } for t, m in fits.items()), key=lambda r: r["ticker"])
         except t212_client.T212Error as e:
             out["warnings"].append(f"Couldn't read holdings from Trading212: {e}")
     modelled = {a["ticker"] for a in analyses}

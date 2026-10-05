@@ -63,6 +63,7 @@ export function DashboardTiles({ onNavigate, onOpenAnalysis }: { onNavigate: (s:
   if (!d) return <p className="an-sub">Loading tiles… (prices, index levels and earnings dates from Yahoo)</p>
 
   const b = d.book
+  const unexplained = b.flags.filter((f) => f.category === 'unexplained')
   const a = d.analysis
   const mult = readMultiple()
   const low = a?.eps_low != null ? a.eps_low * mult * (a.fx ?? 1) : null
@@ -74,7 +75,11 @@ export function DashboardTiles({ onNavigate, onOpenAnalysis }: { onNavigate: (s:
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-      <Tile name="Book" onClick={() => onNavigate('book')} badge={<span className="an-sub">flags need the expected-move model</span>}>
+      <Tile
+        name="Book"
+        onClick={() => onNavigate('book')}
+        badge={unexplained.length ? <Chip tone="down" strength="half">{unexplained.length} unexplained</Chip> : <span className="an-sub">no unexplained moves</span>}
+      >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 23, fontWeight: 600, letterSpacing: '-.015em', color: tone(b.day_pnl_gbp) }}>
             {b.day_pnl_gbp >= 0 ? '+' : '−'}{formatGbp(Math.abs(b.day_pnl_gbp))}
@@ -86,6 +91,21 @@ export function DashboardTiles({ onNavigate, onOpenAnalysis }: { onNavigate: (s:
           <Stat label="worst" value={b.worst ? <>{b.worst.ticker} {signedPct(b.worst.day_pct)}</> : '—'} color={tone(b.worst?.day_pct)} />
           <Stat label="breadth" value={`${b.up} up / ${b.down} dn`} />
         </div>
+        {b.flags.length > 0 && (
+          <div style={{ display: 'grid', gap: 5, marginBottom: 10 }}>
+            <span style={{ fontSize: 11, color: 'var(--accent)' }}>{unexplained.length} unexplained{b.flags.length > unexplained.length ? ` · ${b.flags.length - unexplained.length} on results` : ''}</span>
+            {b.flags.map((f) => (
+              <div key={f.ticker} style={{ display: 'grid', gridTemplateColumns: '54px 1fr auto', gap: 8, fontSize: 12, color: tone(f.actual_pct) }}>
+                <b style={{ fontWeight: 600 }}>{f.ticker}</b>
+                <span>
+                  {signedPct(f.actual_pct)} <span className="an-sub">exp {signedPct(f.expected_pct)}</span>
+                  {f.category === 'earnings' ? <span className="an-sub"> · results</span> : !f.modelled && <span style={{ color: 'var(--accent)' }}> · run an analysis</span>}
+                </span>
+                <span>z {f.z.toFixed(1)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <span className="an-sub" style={{ marginTop: 'auto' }}>
           {b.priced} of {b.holdings} priced · day move in local currency, FX excluded
         </span>

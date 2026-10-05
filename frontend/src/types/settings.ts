@@ -28,6 +28,7 @@ export interface SettingsStatus {
   prices: { last_fetched: string | null; unmapped: string[] }
   deposits_cached_at: string | null
   proposals: FactorProposal[]
+  model: { ticker: string; index: string | null; beta: number | null; r2: number | null; n: number | null; fit_from: string | null; fit_to: string | null; sigma_pct: number | null }[]
   warnings: string[]
 }
 

@@ -16,7 +16,8 @@ from datetime import date, datetime, timedelta, timezone
 from supabase import Client
 
 from app.crypto import get_t212_credentials
-from app.services import macro_view, t212_client
+from app.services import expected_move, macro_view, t212_client
+from app.services.analysis_lookup import modelled_tickers
 from app.services.analysis_view import staleness
 from app.services.index_map import CONCENTRATION_LIMIT_PCT, INDEX_META, INDEX_YAHOO, index_for_ticker
 from app.services.market_data import parse_t212_ticker
@@ -117,8 +118,15 @@ def dashboard(db: Client, user_id: str) -> dict:
         "down": sum(m["day_pct"] < 0 for m in moves),
         "priced": len(moves),
         "holdings": len(held),
-        "flags": None,      # expected-move model not built yet
+        "flags": [],
     }
+    explained = expected_move.explain_holdings([{"ticker": h["ticker"], "yahoo": h["yahoo"], "index": h["index"]} for h in held])
+    analysed = modelled_tickers(db)
+    for tk, m in explained.items():
+        if m and m["category"] != "none":
+            book_tile["flags"].append({"ticker": tk, "category": m["category"], "actual_pct": m["actual_pct"],
+                                       "expected_pct": m["expected_pct"], "z": m["z"], "modelled": tk in analysed})
+    book_tile["flags"].sort(key=lambda f: (f["category"] != "unexplained", -abs(f["z"])))
 
     # Indices tile
     by_index: dict[str, float] = {}

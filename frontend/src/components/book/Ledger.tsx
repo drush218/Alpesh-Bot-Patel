@@ -58,7 +58,7 @@ export function Ledger({ rows, onOpenAnalysis }: Props) {
         )}
       </section>
       <p style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 8 }}>
-        bars GBP weight, 20% scale · ○ cost basis · accent gutter = open flag · band = price in LOW–HIGH at reference multiple
+        bars GBP weight, 20% scale · ○ cost basis · accent gutter = unexplained move (|z| ≥ 2.5 vs its index) · band = price in LOW–HIGH at reference multiple
       </p>
     </>
   )

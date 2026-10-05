@@ -372,9 +372,31 @@ function PipelineSection({ status }: { status: SettingsStatus }) {
         </Row>
       )}
       <Row label="Deposit history cached">{fmtDateTime(status.deposits_cached_at)} · refreshed after 24h</Row>
-      <Row label="Expected-move model">
-        <span style={{ color: 'var(--ink3)' }}>not built yet · lookback, per-holding R² and earnings suppression will show here</span>
+      <Row label="Expected-move check">
+        index only · 250-day fit (60 minimum) · flag at |z| ≥ 2.5 · results days labelled earnings, not unexplained
       </Row>
+      {status.model.length > 0 && (
+        <div className="an-scroll" style={{ marginTop: 8 }}>
+          <table className="an-table" style={{ fontSize: 11.5 }}>
+            <thead>
+              <tr><th>Ticker</th><th>Index</th><th>β</th><th>R²</th><th>Daily σ</th><th>Fit window</th></tr>
+            </thead>
+            <tbody>
+              {status.model.map((m) => (
+                <tr key={m.ticker}>
+                  <td style={{ fontWeight: 600 }}>{m.ticker}</td>
+                  <td>{m.index ?? '—'}</td>
+                  <td>{m.beta != null ? m.beta.toFixed(2) : '—'}</td>
+                  <td style={{ color: m.r2 != null && m.r2 < 0.1 ? 'var(--accent)' : undefined }}>{m.r2 != null ? m.r2.toFixed(2) : '—'}</td>
+                  <td>{m.sigma_pct != null ? `${m.sigma_pct.toFixed(1)}%` : '—'}</td>
+                  <td style={{ color: 'var(--ink3)' }}>{m.fit_from ? `${fmtDate(m.fit_from)} – ${fmtDate(m.fit_to)} · ${m.n}d` : 'under 60 days of history'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="an-sub" style={{ margin: '6px 0 0' }}>Low R² (amber, under 0.10) means the index explains little of that name's daily moves, so its flags are mostly about company news.</p>
+        </div>
+      )}
     </Section>
   )
 }

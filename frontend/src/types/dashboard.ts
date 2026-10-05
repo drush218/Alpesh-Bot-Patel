@@ -18,7 +18,7 @@ export interface DashboardData {
     down: number
     priced: number
     holdings: number
-    flags: null
+    flags: { ticker: string; category: 'unexplained' | 'earnings'; actual_pct: number; expected_pct: number; z: number; modelled: boolean }[]
   }
   macro: {
     tilt: MacroView['tilt']

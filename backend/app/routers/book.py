@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.crypto import get_t212_credentials
 from app.deps import CurrentUser, get_current_user
 from app.models.book import BookResponse, BookSummary, IndexExposureRow, LedgerRow
-from app.services import t212_client
+from app.services import expected_move, t212_client
 from app.services.analysis_lookup import modelled_tickers
 from app.services.company_names import company_name
 from app.services.index_map import CONCENTRATION_LIMIT_PCT, INDEX_META, index_for_ticker
@@ -31,9 +31,16 @@ def get_book(user: CurrentUser = Depends(get_current_user)) -> BookResponse:
     invested_gbp = sum(d["value_gbp"] for d in derived)
     total_book_gbp = invested_gbp + free_cash
 
+    moves = expected_move.explain_holdings([
+        {"ticker": d["ticker"], "yahoo": parse_t212_ticker(d["ticker"])[1], "index": index_for_ticker(d["ticker"])}
+        for d in derived
+    ])
+
     ledger: list[LedgerRow] = []
     for d in derived:
         ticker = d["ticker"]
+        m = moves.get(ticker) or {}
+        flag = m.get("category") if m.get("category") in ("unexplained", "earnings") else None
         ledger.append(
             LedgerRow(
                 ticker=ticker,
@@ -48,6 +55,15 @@ def get_book(user: CurrentUser = Depends(get_current_user)) -> BookResponse:
                 cost_basis_of_book_pct=(d["cost_gbp"] / total_book_gbp * 100) if total_book_gbp else 0,
                 index_code=index_for_ticker(ticker),
                 modelled=parse_t212_ticker(ticker)[0] in modelled,
+                today_vs_exp_pct=m.get("actual_pct"),
+                expected_pct=m.get("expected_pct"),
+                residual_pct=m.get("residual_pct"),
+                z_score=m.get("z"),
+                flag=flag,
+                has_flag=flag == "unexplained",
+                move_date=m.get("date"),
+                index_beta=(m.get("betas") or {}).get("index"),
+                fit_r2=m.get("r2"),
             )
         )
     ledger.sort(key=lambda r: r.weight_of_book_pct, reverse=True)
@@ -96,6 +112,7 @@ def get_book(user: CurrentUser = Depends(get_current_user)) -> BookResponse:
             holdings_count=len(derived),
             total_book_gbp=total_book_gbp,
             no_model_count=no_model_count,
+            unexplained_count=sum(r.has_flag for r in ledger),
         ),
         index_exposure=index_exposure,
         ledger=ledger,
