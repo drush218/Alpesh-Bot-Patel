@@ -6,7 +6,8 @@ import type { MacroView } from '../types/macro'
 import type { DashboardData } from '../types/dashboard'
 import type { AnalysisView, Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
+// Unset in production: the backend serves this app, so API calls are same-origin.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 class ApiError extends Error {
   status: number

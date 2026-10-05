@@ -1,0 +1,20 @@
+# Render blueprint: New > Blueprint > pick this repo. Secrets are entered in the dashboard (sync: false).
+services:
+  - type: web
+    name: portfolio-terminal
+    runtime: docker
+    plan: free            # free sleeps when idle; "starter" (~$7/mo) stays on
+    region: frankfurt
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: FERNET_KEY        # must be the same key the Streamlit app uses, or saved T212 credentials won't decrypt
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false

@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -28,3 +31,10 @@ app.include_router(sizer.router, prefix="/api")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# In production (Docker / Render) the built React app is served from the same origin, so the
+# frontend calls /api/... with no CORS. Locally, vite serves it on :5173 and this is skipped.
+_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if _DIST.is_dir():
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="frontend")
