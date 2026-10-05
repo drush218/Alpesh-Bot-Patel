@@ -2,6 +2,7 @@ import { supabase } from './supabaseClient'
 import type { BookResponse } from '../types/book'
 import type { AccountSummary, BenchmarksResponse } from '../types/account'
 import type { IngestPreview, SettingsStatus } from '../types/settings'
+import type { MacroView } from '../types/macro'
 import type { AnalysisView, Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -143,3 +144,12 @@ export async function refreshMarket(): Promise<MarketRefreshSummary> {
 }
 
 export { ApiError }
+
+export async function fetchMacro(): Promise<MacroView> {
+  return (await authedFetch('/api/macro')).json()
+}
+
+/** Pull factor series from FRED; the server skips factors already fetched today. */
+export async function refreshMacro(): Promise<unknown> {
+  return (await authedFetch('/api/macro/refresh', { method: 'POST' })).json()
+}

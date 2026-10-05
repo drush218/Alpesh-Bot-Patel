@@ -12,6 +12,7 @@ class _Query:
     def __init__(self, db, table):
         self.db, self.table, self.filters, self.op, self.payload = db, table, [], "select", None
         self.on_conflict = None
+        self.sort, self.cap = None, None
 
     def select(self, *_):
         self.op = "select"
@@ -33,6 +34,14 @@ class _Query:
         self.op = "delete"
         return self
 
+    def order(self, col, desc=False):
+        self.sort = (col, desc)
+        return self
+
+    def limit(self, n):
+        self.cap = n
+        return self
+
     def eq(self, col, val):
         self.filters.append((col, val))
         return self
@@ -44,6 +53,10 @@ class _Query:
         rows = self.db.tables.setdefault(self.table, [])
         if self.op == "select":
             data = [dict(r) for r in rows if self._match(r)]
+            if self.sort:
+                data.sort(key=lambda r: r.get(self.sort[0]), reverse=self.sort[1])
+            if self.cap is not None:
+                data = data[:self.cap]
         elif self.op == "insert":
             new = self.payload if isinstance(self.payload, list) else [self.payload]
             data = []
@@ -54,14 +67,16 @@ class _Query:
                 data.append(dict(r))
         elif self.op == "upsert":
             keys = self.on_conflict.split(",")
-            hit = [r for r in rows if all(r.get(k) == self.payload[k] for k in keys)]
-            if hit:
-                hit[0].update(self.payload)
-                data = [dict(hit[0])]
-            else:
-                r = {**self.payload, "id": next(self.db.ids)}
-                rows.append(r)
-                data = [dict(r)]
+            data = []
+            for item in (self.payload if isinstance(self.payload, list) else [self.payload]):
+                hit = [r for r in rows if all(r.get(k) == item[k] for k in keys)]
+                if hit:
+                    hit[0].update(item)
+                    data.append(dict(hit[0]))
+                else:
+                    r = {"id": next(self.db.ids), **item}
+                    rows.append(r)
+                    data.append(dict(r))
         elif self.op == "update":
             data = []
             for r in rows:

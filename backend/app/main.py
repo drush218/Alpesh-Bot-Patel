@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import account, book, market, scenarios, scorecard, settings as settings_router
+from app.routers import account, book, market, scenarios, scorecard, settings as settings_router, macro
 
 app = FastAPI(title="Portfolio Terminal API")
 
@@ -20,6 +20,7 @@ app.include_router(market.router, prefix="/api")
 app.include_router(scenarios.router, prefix="/api")
 app.include_router(scorecard.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
+app.include_router(macro.router, prefix="/api")
 
 
 @app.get("/health")

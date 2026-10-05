@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { listAnalysed, refreshMarket } from './lib/apiClient'
+import { listAnalysed, refreshMacro, refreshMarket } from './lib/apiClient'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LoginScreen } from './components/auth/LoginScreen'
 import { Header, type Screen } from './components/layout/Header'
@@ -8,6 +8,7 @@ import { BookScreen } from './components/book/BookScreen'
 import { DashboardScreen } from './components/dashboard/DashboardScreen'
 import { AnalysisScreen } from './components/analysis/AnalysisScreen'
 import { SettingsScreen } from './components/settings/SettingsScreen'
+import { MacroScreen } from './components/macro/MacroScreen'
 
 function AppShell() {
   const { session, loading } = useAuth()
@@ -22,6 +23,7 @@ function AppShell() {
   useEffect(() => {
     if (!userId) return
     refreshMarket().catch((e) => console.warn('Market refresh failed:', e.message))
+    refreshMacro().catch((e) => console.warn('Macro refresh failed:', e.message))
     listAnalysed()
       .then((tickers) => setAnalysisTicker((t) => t ?? tickers[0] ?? null))
       .catch((e) => console.warn('Analysis list failed:', e.message))
@@ -38,6 +40,7 @@ function AppShell() {
         <BookScreen onOpenAnalysis={openAnalysis} />
       )}
       {screen === 'analysis' && analysisTicker && <AnalysisScreen ticker={analysisTicker} />}
+      {screen === 'macro' && <MacroScreen />}
       {screen === 'settings' && <SettingsScreen onOpenAnalysis={openAnalysis} />}
     </>
   )

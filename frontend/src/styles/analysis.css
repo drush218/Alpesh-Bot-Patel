@@ -226,3 +226,21 @@
 .an-cell input:focus-visible,
 .sc-pip:focus-visible,
 .sc-status:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Macro ranked list */
+.macro-row {
+  display: grid;
+  grid-template-columns: 4px minmax(150px, 200px) 132px minmax(0, 1fr) 22px;
+  gap: 14px;
+  align-items: center;
+  padding: 9px 16px 9px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  cursor: pointer;
+}
+.macro-row:hover,
+.macro-row.open { background: var(--panel2); }
+@media (max-width: 900px) {
+  .macro-row { grid-template-columns: 3px minmax(0, 1fr) auto 16px; gap: 10px; }
+  .macro-row > :nth-child(4) { display: none; }
+}
