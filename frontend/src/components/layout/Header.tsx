@@ -10,8 +10,8 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Settings' },
 ] as const
 
-export type Screen = 'dashboard' | 'book'
-const BUILT: readonly string[] = ['dashboard', 'book']
+export type Screen = 'dashboard' | 'book' | 'analysis'
+const BUILT: readonly string[] = ['dashboard', 'book', 'analysis']
 
 function formatTimestamp(date: Date): string {
   const datePart = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -22,7 +22,7 @@ function formatTimestamp(date: Date): string {
   return `${datePart} · ${timePart}${tz ? ' ' + tz : ''}`
 }
 
-export function Header({ screen, onNavigate }: { screen: Screen; onNavigate: (s: Screen) => void }) {
+export function Header({ screen, onNavigate, analysisTicker }: { screen: Screen; onNavigate: (s: Screen) => void; analysisTicker: string | null }) {
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -53,9 +53,9 @@ export function Header({ screen, onNavigate }: { screen: Screen; onNavigate: (s:
         {NAV_ITEMS.map((item) => (
           <NavButton
             key={item.key}
-            label={item.label}
+            label={item.key === 'analysis' && analysisTicker ? analysisTicker : item.label}
             active={item.key === screen}
-            disabled={!BUILT.includes(item.key)}
+            disabled={!BUILT.includes(item.key) || (item.key === 'analysis' && !analysisTicker)}
             onClick={() => onNavigate(item.key as Screen)}
           />
         ))}

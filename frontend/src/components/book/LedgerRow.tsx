@@ -1,5 +1,5 @@
 import type { LedgerRow as LedgerRowType } from '../../types/book'
-import { formatGbp, formatSignedPct, truncate } from '../../lib/format'
+import { formatGbp, formatSignedPct, instrumentTicker, truncate } from '../../lib/format'
 
 const WEIGHT_BAR_SCALE = 20 // bars are on a 0-20% scale; 20% weight = a full bar
 
@@ -7,13 +7,14 @@ interface Props {
   row: LedgerRowType
   open: boolean
   onToggle: () => void
+  onOpenAnalysis: (ticker: string) => void
 }
 
 function Dimmed() {
   return <span style={{ color: 'var(--ink3)' }}>—</span>
 }
 
-export function LedgerRow({ row, open, onToggle }: Props) {
+export function LedgerRow({ row, open, onToggle, onOpenAnalysis }: Props) {
   const weightBarPct = Math.min(100, (row.weight_of_book_pct / WEIGHT_BAR_SCALE) * 100)
   const costDotPct = row.cost_basis_of_book_pct != null ? Math.min(100, (row.cost_basis_of_book_pct / WEIGHT_BAR_SCALE) * 100) : null
 
@@ -130,6 +131,24 @@ export function LedgerRow({ row, open, onToggle }: Props) {
                 {row.is_cash ? '—' : row.modelled ? 'analysed, expected-move model not yet live' : 'no model yet'}
               </div>
             </div>
+            {row.modelled && (
+              <button
+                onClick={() => onOpenAnalysis(instrumentTicker(row.ticker))}
+                style={{
+                  alignSelf: 'center',
+                  marginLeft: 'auto',
+                  padding: '6px 11px',
+                  border: '1px solid var(--line2)',
+                  background: 'transparent',
+                  borderRadius: 3,
+                  fontSize: 11.5,
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                }}
+              >
+                Open analysis ▸
+              </button>
+            )}
           </div>
         </div>
       )}

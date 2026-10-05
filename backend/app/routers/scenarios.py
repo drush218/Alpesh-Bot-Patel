@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 from app.deps import CurrentUser, get_current_user
 from app.services import scenarios, workspace
+from app.services.analysis_lookup import modelled_tickers
 
 router = APIRouter()
 
@@ -24,6 +25,12 @@ class SaveRequest(BaseModel):
 
 def _not_found(e: workspace.NotFound):
     raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/analysis")
+def list_analysed(user: CurrentUser = Depends(get_current_user)) -> list[str]:
+    """Tickers that have a current analysis, for the Analysis nav."""
+    return sorted(modelled_tickers(user.db))
 
 
 @router.post("/analysis/{ticker}/workspace")

@@ -19,3 +19,11 @@ export function formatSignedGbp(value: number): string {
   const sign = value > 0 ? '+' : value < 0 ? '−' : ''
   return `${sign}${formatGbp(Math.abs(value))}`
 }
+
+/** Trading212 symbol to our instrument ticker, as backend parse_t212_ticker: BROS_US_EQ -> BROS, HSBAl_EQ -> HSBA. */
+export function instrumentTicker(t212: string): string {
+  let body = t212.replace(/_EQ$/, '')
+  if (body.endsWith('_US')) return body.slice(0, -3).toUpperCase()
+  if (/[a-z]$/.test(body)) body = body.slice(0, -1)
+  return body.toUpperCase()
+}

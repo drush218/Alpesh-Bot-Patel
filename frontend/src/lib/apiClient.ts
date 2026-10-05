@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient'
 import type { BookResponse } from '../types/book'
 import type { AccountSummary, BenchmarksResponse } from '../types/account'
+import type { Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -22,7 +23,10 @@ async function authedFetch(path: string, init: RequestInit = {}): Promise<Respon
   }
 
   const send = (token: string) =>
-    fetch(`${BASE_URL}${path}`, { ...init, headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), Authorization: `Bearer ${token}` },
+    })
 
   let res = await send(session.access_token)
 
@@ -53,6 +57,45 @@ export async function fetchAccount(): Promise<AccountSummary> {
 export async function fetchBenchmarks(): Promise<BenchmarksResponse> {
   const res = await authedFetch('/api/account/benchmarks')
   return res.json()
+}
+
+const post = (path: string, body: unknown) => authedFetch(path, { method: 'POST', body: JSON.stringify(body) })
+const enc = encodeURIComponent
+
+export async function listAnalysed(): Promise<string[]> {
+  return (await authedFetch('/api/analysis')).json()
+}
+
+/** Current analysis with unsaved edits applied; outputs rerun server-side by the same engine as the skill. */
+export async function previewWorkspace(ticker: string, overrides: Override[]): Promise<WorkspaceResult> {
+  return (await post(`/api/analysis/${enc(ticker)}/workspace`, { overrides })).json()
+}
+
+export async function listScenarios(ticker: string): Promise<ScenarioSummary[]> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}/scenarios`)).json()
+}
+
+export async function loadScenario(ticker: string, id: number): Promise<WorkspaceResult> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}/scenarios/${id}`)).json()
+}
+
+export async function saveScenario(
+  ticker: string,
+  body: { name: string; note: string | null; overrides: Override[] },
+): Promise<{ id: number; name: string; override_count: number }> {
+  return (await post(`/api/analysis/${enc(ticker)}/scenarios`, body)).json()
+}
+
+export async function deleteScenario(ticker: string, id: number): Promise<void> {
+  await authedFetch(`/api/analysis/${enc(ticker)}/scenarios/${id}`, { method: 'DELETE' })
+}
+
+export async function fetchScorecard(ticker: string): Promise<ScorecardResponse> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}/scorecard`)).json()
+}
+
+export async function saveScorecard(ticker: string, card: ScorecardIn): Promise<ScorecardResponse> {
+  return (await post(`/api/analysis/${enc(ticker)}/scorecard`, card)).json()
 }
 
 export interface MarketRefreshSummary {

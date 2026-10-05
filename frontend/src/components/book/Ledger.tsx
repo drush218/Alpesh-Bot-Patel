@@ -4,9 +4,10 @@ import { LedgerRow } from './LedgerRow'
 
 interface Props {
   rows: LedgerRowType[]
+  onOpenAnalysis: (ticker: string) => void
 }
 
-export function Ledger({ rows }: Props) {
+export function Ledger({ rows, onOpenAnalysis }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   return (
@@ -51,6 +52,7 @@ export function Ledger({ rows }: Props) {
               row={row}
               open={expanded === row.ticker}
               onToggle={() => setExpanded((prev) => (prev === row.ticker ? null : row.ticker))}
+              onOpenAnalysis={onOpenAnalysis}
             />
           ))
         )}
