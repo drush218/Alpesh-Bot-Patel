@@ -3,6 +3,7 @@ import type { BookResponse } from '../types/book'
 import type { AccountSummary, BenchmarksResponse } from '../types/account'
 import type { IngestPreview, SettingsStatus } from '../types/settings'
 import type { MacroView } from '../types/macro'
+import type { DashboardData } from '../types/dashboard'
 import type { AnalysisView, Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -152,4 +153,8 @@ export async function fetchMacro(): Promise<MacroView> {
 /** Pull factor series from FRED; the server skips factors already fetched today. */
 export async function refreshMacro(): Promise<unknown> {
   return (await authedFetch('/api/macro/refresh', { method: 'POST' })).json()
+}
+
+export async function fetchDashboard(): Promise<DashboardData> {
+  return (await authedFetch('/api/dashboard')).json()
 }

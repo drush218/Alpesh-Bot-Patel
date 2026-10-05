@@ -35,7 +35,7 @@ function AppShell() {
   return (
     <>
       <Header screen={screen} onNavigate={setScreen} analysisTicker={analysisTicker} />
-      {screen === 'dashboard' && <DashboardScreen />}
+      {screen === 'dashboard' && <DashboardScreen onNavigate={setScreen} onOpenAnalysis={openAnalysis} />}
       {screen === 'book' && (
         <BookScreen onOpenAnalysis={openAnalysis} />
       )}

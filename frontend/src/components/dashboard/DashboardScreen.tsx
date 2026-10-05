@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { fetchAccount } from '../../lib/apiClient'
 import type { AccountSummary } from '../../types/account'
 import { AccountStrip } from './AccountStrip'
+import { DashboardTiles } from './DashboardTiles'
+import type { Screen } from '../layout/Header'
 
-export function DashboardScreen() {
+export function DashboardScreen({ onNavigate, onOpenAnalysis }: { onNavigate: (s: Screen) => void; onOpenAnalysis: (t: string) => void }) {
   const [account, setAccount] = useState<AccountSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +53,7 @@ export function DashboardScreen() {
           <AccountStrip account={account} />
         </>
       )}
+      <DashboardTiles onNavigate={onNavigate} onOpenAnalysis={onOpenAnalysis} />
     </main>
   )
 }

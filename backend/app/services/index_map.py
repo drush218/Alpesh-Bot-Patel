@@ -15,9 +15,35 @@ INDEX_META: dict[str, str] = {
     "RUT": "Russell 2000",
     "TWII": "Taiwan TAIEX",
     "UKX": "FTSE 100",
+    "MCX": "FTSE 250",
+    "AIM": "FTSE AIM All-Share",
+}
+
+# code -> Yahoo symbol, for levels and day moves
+INDEX_YAHOO: dict[str, str] = {
+    "NDX": "^NDX",
+    "SPX": "^GSPC",
+    "RUT": "^RUT",
+    "TWII": "^TWII",
+    "UKX": "^FTSE",
+    "MCX": "^FTMC",
+    "AIM": "^FTAI",
 }
 
 TICKER_INDEX: dict[str, str] = {
+    # Current holdings (Oct 2026). ONON is NYSE-listed but in none of these; S&P 500 is the
+    # closest benchmark. BGEO / UKW / GRG are FTSE 250, CAML is on AIM.
+    "PYPL": "NDX",
+    "MELI": "NDX",
+    "SMCI": "SPX",
+    "DECK": "SPX",
+    "UBER": "SPX",
+    "ONON": "SPX",
+    "BGEO": "MCX",
+    "UKW": "MCX",
+    "GRG": "MCX",
+    "CAML": "AIM",
+    # From the design prototype's sample book.
     "MSFT": "NDX",
     "COST": "NDX",
     "ASML": "NDX",
@@ -34,5 +60,7 @@ TICKER_INDEX: dict[str, str] = {
 
 
 def index_for_ticker(ticker: str) -> str | None:
-    clean = ticker.split("_")[0].upper()
+    """Accepts our ticker (BGEO) or the T212 one (BGEOl_EQ, MSFT_US_EQ)."""
+    from app.services.market_data import parse_t212_ticker
+    clean = parse_t212_ticker(ticker)[0] if ticker.endswith("_EQ") else ticker.upper()
     return TICKER_INDEX.get(clean)

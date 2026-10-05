@@ -72,7 +72,7 @@ def get_book(user: CurrentUser = Depends(get_current_user)) -> BookResponse:
         if not code:
             continue
         index_totals[code] = index_totals.get(code, 0) + d["value_gbp"]
-        index_members.setdefault(code, []).append(d["ticker"].split("_")[0])
+        index_members.setdefault(code, []).append(parse_t212_ticker(d["ticker"])[0])
 
     index_exposure = []
     for code, value in index_totals.items():
