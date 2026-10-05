@@ -45,11 +45,39 @@ def current_analysis(db: Client, ticker: str) -> dict:
             "inputs": _inputs_of(model), "outputs": model.get("outputs")}
 
 
-def _evaluate(base: dict, saved_overrides: list) -> dict:
+def latest_price(db: Client, instrument_id: int, reporting_ccy: str | None) -> dict | None:
+    """Latest stored quote plus fx (EPS currency -> quote currency), so PE = close / (eps * fx)."""
+    rows = (db.table("latest_prices").select("close, currency, price_date, fetched_at, source")
+            .eq("instrument_id", instrument_id).execute().data)
+    if not rows:
+        return None
+    p = rows[0]
+    if not reporting_ccy or p["currency"] == reporting_ccy:
+        fx = 1.0
+    else:
+        fx = db.rpc("fx_rate", {"from_ccy": reporting_ccy, "to_ccy": p["currency"]}).execute().data
+    return {"close": float(p["close"]), "currency": p["currency"], "price_date": p["price_date"],
+            "fetched_at": p["fetched_at"], "source": p.get("source"), "fx": float(fx) if fx is not None else None}
+
+
+def _actual(inputs: dict) -> dict:
+    """Base-year actuals the analysis carries. Costs, net income and EPS aren't in the v2 inputs yet."""
+    return {
+        "year": inputs.get("meta", {}).get("base_year"),
+        "revenue": sum(s["base"] for s in inputs["revenue"]["segments"]),
+        "shares": inputs["shares"]["base_diluted"],
+    }
+
+
+def _evaluate(db: Client, base: dict, saved_overrides: list) -> dict:
     inputs, could_not_apply, base_moved = scenarios.apply_overrides(base["inputs"], saved_overrides)
     model, errors, warnings = _run(inputs)
     return {
         "analysis_id": base["analysis_id"],
+        "data_as_of": base["inputs"].get("meta", {}).get("data_as_of"),
+        "price": latest_price(db, base["instrument_id"], base["inputs"].get("meta", {}).get("reporting_currency")),
+        "actual": _actual(base["inputs"]),
+        "base_inputs": base["inputs"],
         "base_outputs": base["outputs"],
         "outputs": model["outputs"] if model else None,
         "errors": errors,
@@ -63,7 +91,7 @@ def preview(db: Client, ticker: str, edits: list[dict]) -> dict:
     """Run the model on the current analysis plus unsaved edits. Unknown paths are reported, not raised."""
     base = current_analysis(db, ticker)
     overrides = [{"path": e["path"], "value": e["value"]} for e in edits]
-    return _evaluate(base, overrides)
+    return _evaluate(db, base, overrides)
 
 
 def list_scenarios(db: Client, user_id: str, ticker: str) -> list[dict]:
@@ -106,7 +134,7 @@ def _get_row(db: Client, user_id: str, base: dict, scenario_id: int) -> dict:
 def load_scenario(db: Client, user_id: str, ticker: str, scenario_id: int) -> dict:
     base = current_analysis(db, ticker)
     row = _get_row(db, user_id, base, scenario_id)
-    result = _evaluate(base, row["overrides"])
+    result = _evaluate(db, base, row["overrides"])
     dropped = set(result["could_not_apply"])
     result["scenario"] = {
         "id": row["id"], "name": row["name"], "note": row.get("note"),

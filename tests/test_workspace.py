@@ -27,6 +27,8 @@ class WorkspaceCase(unittest.TestCase):
         self.model = _model_block(_load_fixture())
         self.db.tables["instruments"] = [{"id": 1, "ticker": "BROS"}]
         self.db.tables["analyses"] = [{"id": 10, "instrument_id": 1, "is_current": True, "model": self.model}]
+        self.db.tables["latest_prices"] = [{"instrument_id": 1, "close": 38.67, "currency": "USD",
+                                            "price_date": "2026-10-05", "fetched_at": "2026-10-05T13:24:15+00:00"}]
 
     def rebase(self, delta):
         """Add a newer current analysis where the overridden cell moved by delta."""
@@ -40,6 +42,8 @@ class WorkspaceCase(unittest.TestCase):
         self.assertEqual(res["errors"], [])
         self.assertEqual(_bau_fy27_growth(res["outputs"]), 30.0)
         self.assertEqual(res["base_outputs"], self.model["outputs"])
+        self.assertEqual((res["price"]["close"], res["price"]["fx"]), (38.67, 1.0))
+        self.assertEqual(res["actual"], {"year": "FY2025", "revenue": 1638, "shares": 187.7})
 
     def test_preview_reports_unknown_path(self):
         res = workspace.preview(self.db, "BROS", [{"path": "revenue.segments[Nope].growth[FY2027].pct", "value": 1}])
