@@ -49,6 +49,14 @@ def get_positions(api_key: str, api_secret: str) -> list[dict]:
     return _cached_get("/api/v0/equity/portfolio", api_key, api_secret, "portfolio")
 
 
+def get_history_page(api_key: str, api_secret: str, path: str) -> tuple[dict, dict]:
+    """One page of transaction history, uncached: (body, response headers). Headers carry the rate-limit state."""
+    resp = requests.get(f"{BASE_URL}{path}", headers=_headers(api_key, api_secret), timeout=20)
+    if not resp.ok:
+        raise T212Error(f"T212 history API error {resp.status_code}: {resp.text}")
+    return resp.json(), {k.lower(): v for k, v in resp.headers.items()}
+
+
 def derive_position_gbp(position: dict) -> dict:
     """Apply the same FX-derivation math as pages/1_My_Portfolio.py.
 

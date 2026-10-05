@@ -10,6 +10,9 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Settings' },
 ] as const
 
+export type Screen = 'dashboard' | 'book'
+const BUILT: readonly string[] = ['dashboard', 'book']
+
 function formatTimestamp(date: Date): string {
   const datePart = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
   const timePart = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -19,7 +22,7 @@ function formatTimestamp(date: Date): string {
   return `${datePart} · ${timePart}${tz ? ' ' + tz : ''}`
 }
 
-export function Header() {
+export function Header({ screen, onNavigate }: { screen: Screen; onNavigate: (s: Screen) => void }) {
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -48,7 +51,13 @@ export function Header() {
 
       <nav style={{ display: 'flex', gap: 2, marginLeft: 8 }}>
         {NAV_ITEMS.map((item) => (
-          <NavButton key={item.key} label={item.label} active={item.key === 'book'} disabled={item.key !== 'book'} />
+          <NavButton
+            key={item.key}
+            label={item.label}
+            active={item.key === screen}
+            disabled={!BUILT.includes(item.key)}
+            onClick={() => onNavigate(item.key as Screen)}
+          />
         ))}
       </nav>
 

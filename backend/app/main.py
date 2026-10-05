@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import book, market
+from app.routers import account, book, market
 
 app = FastAPI(title="Portfolio Terminal API")
 
@@ -14,6 +14,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+app.include_router(account.router, prefix="/api")
 app.include_router(book.router, prefix="/api")
 app.include_router(market.router, prefix="/api")
 

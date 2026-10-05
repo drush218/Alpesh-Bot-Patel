@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient'
 import type { BookResponse } from '../types/book'
+import type { AccountSummary, BenchmarksResponse } from '../types/account'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -41,6 +42,16 @@ async function authedFetch(path: string, init: RequestInit = {}): Promise<Respon
 
 export async function fetchBook(): Promise<BookResponse> {
   const res = await authedFetch('/api/book')
+  return res.json()
+}
+
+export async function fetchAccount(): Promise<AccountSummary> {
+  const res = await authedFetch('/api/account')
+  return res.json()
+}
+
+export async function fetchBenchmarks(): Promise<BenchmarksResponse> {
+  const res = await authedFetch('/api/account/benchmarks')
   return res.json()
 }
 
