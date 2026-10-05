@@ -38,3 +38,13 @@ def get_t212_credentials(supabase: Client, user_id: str) -> tuple[str | None, st
         return api_key, api_secret
     except Exception:
         return None, None
+
+
+def save_t212_credentials(supabase: Client, user_id: str, api_key: str, api_secret: str) -> None:
+    """Encrypt and upsert Trading212 credentials (same format as the Streamlit app). supabase must be a user client."""
+    f = _fernet()
+    supabase.table("user_settings").upsert({
+        "id": user_id,
+        "t212_api_key": f.encrypt(api_key.encode()).decode(),
+        "t212_api_secret": f.encrypt(api_secret.encode()).decode(),
+    }, on_conflict="id").execute()

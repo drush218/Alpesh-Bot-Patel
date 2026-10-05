@@ -7,12 +7,17 @@ import { Header, type Screen } from './components/layout/Header'
 import { BookScreen } from './components/book/BookScreen'
 import { DashboardScreen } from './components/dashboard/DashboardScreen'
 import { AnalysisScreen } from './components/analysis/AnalysisScreen'
+import { SettingsScreen } from './components/settings/SettingsScreen'
 
 function AppShell() {
   const { session, loading } = useAuth()
   const userId = session?.user.id
   const [screen, setScreen] = useState<Screen>('dashboard')
   const [analysisTicker, setAnalysisTicker] = useState<string | null>(null)
+  const openAnalysis = (t: string) => {
+    setAnalysisTicker(t)
+    setScreen('analysis')
+  }
 
   useEffect(() => {
     if (!userId) return
@@ -30,14 +35,10 @@ function AppShell() {
       <Header screen={screen} onNavigate={setScreen} analysisTicker={analysisTicker} />
       {screen === 'dashboard' && <DashboardScreen />}
       {screen === 'book' && (
-        <BookScreen
-          onOpenAnalysis={(t) => {
-            setAnalysisTicker(t)
-            setScreen('analysis')
-          }}
-        />
+        <BookScreen onOpenAnalysis={openAnalysis} />
       )}
       {screen === 'analysis' && analysisTicker && <AnalysisScreen ticker={analysisTicker} />}
+      {screen === 'settings' && <SettingsScreen onOpenAnalysis={openAnalysis} />}
     </>
   )
 }

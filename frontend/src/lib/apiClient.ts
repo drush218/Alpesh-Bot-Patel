@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient'
 import type { BookResponse } from '../types/book'
 import type { AccountSummary, BenchmarksResponse } from '../types/account'
+import type { IngestPreview, SettingsStatus } from '../types/settings'
 import type { Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -96,6 +97,29 @@ export async function fetchScorecard(ticker: string): Promise<ScorecardResponse>
 
 export async function saveScorecard(ticker: string, card: ScorecardIn): Promise<ScorecardResponse> {
   return (await post(`/api/analysis/${enc(ticker)}/scorecard`, card)).json()
+}
+
+export async function fetchSettingsStatus(): Promise<SettingsStatus> {
+  return (await authedFetch('/api/settings/status')).json()
+}
+
+export async function saveCredentials(api_key: string, api_secret: string): Promise<void> {
+  await post('/api/settings/t212', { api_key, api_secret })
+}
+
+export async function previewAnalysis(markdown: string, filename: string | null): Promise<IngestPreview> {
+  return (await post('/api/analyses/preview', { markdown, filename })).json()
+}
+
+export async function storeAnalysis(
+  markdown: string,
+  filename: string | null,
+): Promise<{ analysis_id: number; already_existed: boolean; ticker: string }> {
+  return (await post('/api/analyses', { markdown, filename })).json()
+}
+
+export async function decideProposal(code: string, decision: 'approve' | 'reject'): Promise<void> {
+  await authedFetch(`/api/factors/proposals/${enc(code)}/${decision}`, { method: 'POST' })
 }
 
 export interface MarketRefreshSummary {

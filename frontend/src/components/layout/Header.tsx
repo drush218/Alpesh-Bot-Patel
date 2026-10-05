@@ -10,8 +10,8 @@ const NAV_ITEMS = [
   { key: 'settings', label: 'Settings' },
 ] as const
 
-export type Screen = 'dashboard' | 'book' | 'analysis'
-const BUILT: readonly string[] = ['dashboard', 'book', 'analysis']
+export type Screen = 'dashboard' | 'book' | 'analysis' | 'settings'
+const BUILT: readonly string[] = ['dashboard', 'book', 'analysis', 'settings']
 
 function formatTimestamp(date: Date): string {
   const datePart = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })

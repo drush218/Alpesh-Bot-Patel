@@ -20,7 +20,11 @@ in analyses.model and so moves with each new analysis.
 
 import re
 
-from auth import init_supabase
+
+def init_supabase():
+    """Streamlit's client. The webapp backend passes its own user client to confirm_ingest instead."""
+    from auth import init_supabase as _streamlit_client
+    return _streamlit_client()
 
 LEVER_COLUMNS = ("base", "lever_name", "exposure", "exposure_pct", "speed", "direction",
                  "macro_factor_code", "channel_group", "watch_metric", "current_reading",
@@ -31,9 +35,9 @@ def _non_null(d: dict) -> dict:
     return {k: v for k, v in d.items() if v is not None}
 
 
-def upsert_instrument(ticker: str, company: str | None, exchange: str | None, currency: str | None) -> int:
+def upsert_instrument(ticker: str, company: str | None, exchange: str | None, currency: str | None, supabase=None) -> int:
     """Create or update the instrument by ticker. Returns its id."""
-    supabase = init_supabase()
+    supabase = supabase or init_supabase()
     row = _non_null({
         "ticker": ticker,
         "company": company,
@@ -44,8 +48,8 @@ def upsert_instrument(ticker: str, company: str | None, exchange: str | None, cu
     return resp.data[0]["id"]
 
 
-def find_existing_analysis(instrument_id: int, content_hash: str) -> int | None:
-    supabase = init_supabase()
+def find_existing_analysis(instrument_id: int, content_hash: str, supabase=None) -> int | None:
+    supabase = supabase or init_supabase()
     resp = (
         supabase.table("analyses")
         .select("id")
@@ -56,9 +60,9 @@ def find_existing_analysis(instrument_id: int, content_hash: str) -> int | None:
     return resp.data[0]["id"] if resp.data else None
 
 
-def insert_analysis(payload: dict, instrument_id: int) -> int:
+def insert_analysis(payload: dict, instrument_id: int, supabase=None) -> int:
     """Stage the analysis (is_current=false) and all child rows. Returns the new analysis id."""
-    supabase = init_supabase()
+    supabase = supabase or init_supabase()
     header = payload["analysis"]
 
     analysis_row = {
@@ -100,19 +104,19 @@ def _insert_children(supabase, analysis_id: int, payload: dict) -> None:
     insert("analysis_levers", [{k: l.get(k) for k in LEVER_COLUMNS} for l in payload["levers"]])
 
 
-def promote_analysis(analysis_id: int, instrument_id: int) -> None:
-    supabase = init_supabase()
+def promote_analysis(analysis_id: int, instrument_id: int, supabase=None) -> None:
+    supabase = supabase or init_supabase()
     supabase.table("analyses").update({"is_current": False}).eq("instrument_id", instrument_id).eq("is_current", True).execute()
     supabase.table("analyses").update({"is_current": True}).eq("id", analysis_id).execute()
 
 
-def record_factor_codes(payload: dict, analysis_id: int, ticker: str) -> None:
+def record_factor_codes(payload: dict, analysis_id: int, ticker: str, supabase=None) -> None:
     """
     Proposed factors: insert new codes as pending; for known proposals, append the ticker.
     commodity_* codes are on the parser's fixed list by pattern, so they go straight into
     macro_factors rather than waiting for approval.
     """
-    supabase = init_supabase()
+    supabase = supabase or init_supabase()
     approved = {r["code"] for r in supabase.table("macro_factors").select("code").execute().data}
 
     used = {x["factor_code"] for x in payload["macro"]}
@@ -146,7 +150,7 @@ def record_factor_codes(payload: dict, analysis_id: int, ticker: str) -> None:
             })).execute()
 
 
-def confirm_ingest(payload: dict) -> tuple[int, bool]:
+def confirm_ingest(payload: dict, supabase=None) -> tuple[int, bool]:
     """
     Write payload to Supabase. Returns (analysis_id, already_existed).
     Dedupes on (instrument, content_hash).
@@ -160,12 +164,13 @@ def confirm_ingest(payload: dict) -> tuple[int, bool]:
     if not ticker:
         raise ValueError("Cannot ingest: no ticker in meta.ticker.")
 
-    instrument_id = upsert_instrument(ticker, header.get("company"), header.get("exchange"), header.get("price_currency"))
-    existing_id = find_existing_analysis(instrument_id, payload["content_hash"])
+    db = supabase or init_supabase()
+    instrument_id = upsert_instrument(ticker, header.get("company"), header.get("exchange"), header.get("price_currency"), supabase=db)
+    existing_id = find_existing_analysis(instrument_id, payload["content_hash"], supabase=db)
     if existing_id:
         return existing_id, True
 
-    analysis_id = insert_analysis(payload, instrument_id)
-    promote_analysis(analysis_id, instrument_id)
-    record_factor_codes(payload, analysis_id, ticker)
+    analysis_id = insert_analysis(payload, instrument_id, supabase=db)
+    promote_analysis(analysis_id, instrument_id, supabase=db)
+    record_factor_codes(payload, analysis_id, ticker, supabase=db)
     return analysis_id, False
