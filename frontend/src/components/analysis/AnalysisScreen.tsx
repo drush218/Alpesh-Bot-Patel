@@ -31,7 +31,7 @@ function Metric({ label, value, tone }: { label: string; value: string; tone?: '
   )
 }
 
-export function AnalysisScreen({ ticker }: { ticker: string }) {
+export function AnalysisScreen({ ticker, onSize }: { ticker: string; onSize: (t: string) => void }) {
   const [view, setView] = useState<AnalysisView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [base, setBase] = useState<WorkspaceResult | null>(null)
@@ -131,7 +131,7 @@ export function AnalysisScreen({ ticker }: { ticker: string }) {
             <>
               <Thesis view={view} />
               <WhatChanged view={view} />
-              <PositionPanel view={view} />
+              <PositionPanel view={view} onSize={() => onSize(ticker)} />
               <Upcoming view={view} />
               <DataSource view={view} />
             </>

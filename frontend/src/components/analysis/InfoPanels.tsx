@@ -133,11 +133,11 @@ export function WhatChanged({ view }: { view: AnalysisView }) {
   )
 }
 
-export function PositionPanel({ view }: { view: AnalysisView }) {
+export function PositionPanel({ view, onSize }: { view: AnalysisView; onSize: () => void }) {
   const p = view.position
   const psym = currencySymbol(view.price?.currency ?? view.meta.price_currency)
   return (
-    <Panel title="Position">
+    <Panel title="Position" note={<button className="an-btn" onClick={onSize}>Size a trade ▸</button>}>
       {!p ? (
         <p className="an-sub" style={{ margin: 0 }}>Not held.</p>
       ) : (

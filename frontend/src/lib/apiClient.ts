@@ -158,3 +158,19 @@ export async function refreshMacro(): Promise<unknown> {
 export async function fetchDashboard(): Promise<DashboardData> {
   return (await authedFetch('/api/dashboard')).json()
 }
+
+export interface SizerContext {
+  ticker: string
+  symbol: string
+  price: number | null
+  currency: string | null
+  fx_to_gbp: number | null
+  book: { conservative_gbp: number; total_gbp: number } | null
+  held: { quantity: number; value_gbp: number } | null
+  analysis: { data_as_of: string | null; years: string[]; eps: Record<'low' | 'bau' | 'high', number[]>; fx: number } | null
+  warnings: string[]
+}
+
+export async function fetchSizerContext(ticker: string): Promise<SizerContext> {
+  return (await authedFetch(`/api/sizer/context?ticker=${enc(ticker)}`)).json()
+}
