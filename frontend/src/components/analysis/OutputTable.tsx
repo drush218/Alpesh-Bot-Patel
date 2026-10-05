@@ -7,11 +7,12 @@ interface Props {
   scenarioLabel: string
 }
 
-const NEAR_ZERO = 0.0005
+// A change that rounds to zero at the shown precision is no change.
+const isZero = (d: number | null, dp: number) => d == null || Math.abs(d) < 0.5 * 10 ** -dp
 
-function tone(d: number | null, good: 1 | -1 = 1) {
-  if (d == null || Math.abs(d) < NEAR_ZERO) return 'flat'
-  return d * good > 0 ? 'up' : 'down'
+function tone(d: number | null, dp: number, good: 1 | -1 = 1) {
+  if (isZero(d, dp)) return 'flat'
+  return d! * good > 0 ? 'up' : 'down'
 }
 
 function Value({ m, r }: { m: Metric; r: OutYear }) {
@@ -32,9 +33,9 @@ function Delta({ m, base, cur }: { m: Metric; base: OutYear; cur: OutYear }) {
   const sd = sb == null || sc == null ? null : sc - sb
   return (
     <>
-      <span className={`v ${tone(d, m.good)}`}>{d == null || Math.abs(d) < NEAR_ZERO ? '·' : signed(d, m.mainDp)}</span>
+      <span className={`v ${tone(d, m.mainDp, m.good)}`}>{isZero(d, m.mainDp) ? '·' : signed(d, m.mainDp)}</span>
       {m.sub && (
-        <span className={`s ${tone(sd, m.subGood)}`}>{sd == null || Math.abs(sd) < NEAR_ZERO ? '·' : `${signed(sd)}pp`}</span>
+        <span className={`s ${tone(sd, 1, m.subGood)}`}>{isZero(sd, 1) ? '·' : `${signed(sd)}pp`}</span>
       )}
     </>
   )
