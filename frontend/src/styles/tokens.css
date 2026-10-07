@@ -1,0 +1,40 @@
+/* Design tokens from design_handoff_portfolio_terminal/README.md.
+   Light is this app's default (overriding the handoff's own dark default,
+   per explicit product decision) — both themes are fully implemented. */
+
+:root,
+[data-theme='light'] {
+  --bg: #f6f5f2;
+  --panel: #ffffff;
+  --panel2: #f1f0ec;
+  --line: #e3e1da;
+  --line2: #cdcac1;
+  --ink: #15181c;
+  --ink2: #5b616b;
+  --ink3: #8a9099;
+  --accent: #9a6608;
+  --accentSoft: rgba(154, 102, 8, 0.1);
+  --up: #2f7d57;
+  --down: #b3423f;
+  --bandLow: rgba(90, 100, 115, 0.14);
+  --bandHigh: rgba(47, 125, 87, 0.14);
+  --shadow: 0 1px 2px rgba(20, 22, 26, 0.05);
+}
+
+[data-theme='dark'] {
+  --bg: #191d23;
+  --panel: #212630;
+  --panel2: #2a303a;
+  --line: #353c47;
+  --line2: #48505d;
+  --ink: #f0f2f6;
+  --ink2: #aeb7c3;
+  --ink3: #848d9a;
+  --accent: #e6ae48;
+  --accentSoft: rgba(230, 174, 72, 0.15);
+  --up: #68c395;
+  --down: #e57f76;
+  --bandLow: rgba(140, 152, 168, 0.22);
+  --bandHigh: rgba(104, 195, 149, 0.18);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}

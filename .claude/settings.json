@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile analysis_parser.py analysis_db.py pages/4_Ingest_Analysis.py app.py)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest --version)",
+      "Bash(npm create *)",
+      "Read(//tmp/**)",
+      "Bash(jobs -l)",
+      "Bash(./venv/Scripts/python.exe -m uvicorn app.main:app --port 8000)",
+      "Bash(npm install *)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://127.0.0.1:8000/health)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://127.0.0.1:8000/api/book)",
+      "Bash(cd \"/c/Users/dabel/OneDrive/Desktop/Alpesh Bot Patel/frontend\" && rm -f src/App.css src/assets/react.svg src/assets/hero.png public/vite.svg 2>&1; ls src)",
+      "Bash(npm run *)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://127.0.0.1:5173/)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" -H \"Authorization: Bearer not-a-real-token\" http://127.0.0.1:8000/api/book)",
+      "Bash(curl -s -o /dev/null -w \"backend health: %{http_code}\\\\n\" http://127.0.0.1:8000/health)",
+      "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" http://localhost:5173/)"
+    ]
+  }
+}

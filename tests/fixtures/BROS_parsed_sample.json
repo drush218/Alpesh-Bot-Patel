@@ -1,0 +1,1259 @@
+{
+  "schema_version": 1,
+  "parsed_at": "2026-08-14T12:20:17.454937+00:00",
+  "source_name": "/mnt/project/BROS_DutchBros.md",
+  "content_hash": "1e1b49a66beeaaa9",
+  "analysis": {
+    "company": "Dutch Bros",
+    "ticker": "BROS",
+    "price": 64.67,
+    "price_currency": "USD",
+    "price_date": "2026-07-28",
+    "data_currency": "Q1 FY2026 + FY2025 10-K",
+    "exchange": "NYSE",
+    "calibration_note": "BAU calibrated to management's raised FY2026 guidance ($2.05-2.08bn rev / $370-380m adj. EBITDA). Economic EPS = total NI \u00f7 total economic shares. Up-C: FY2025 total NI $117.3m, of which $79.8m attributable to Class A.",
+    "price_raw": "$64.67 (28 Jul 2026)"
+  },
+  "pe_basis": [
+    {
+      "basis": "Reported (Class A)",
+      "net_income_m": 79.8,
+      "shares_m": 125.8,
+      "eps": 0.64,
+      "pe": 101.0
+    },
+    {
+      "basis": "Economic (total)",
+      "net_income_m": 117.3,
+      "shares_m": 187.7,
+      "eps": 0.625,
+      "pe": 103.0
+    }
+  ],
+  "bridge": [
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Revenue (total)",
+      "line_key": "revenue_total",
+      "value": 1638.0,
+      "unit": "m",
+      "raw": "1,638"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Revenue (total)",
+      "line_key": "revenue_total",
+      "value": 2055.0,
+      "unit": "m",
+      "raw": "2,055"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Revenue (total)",
+      "line_key": "revenue_total",
+      "value": 2555.0,
+      "unit": "m",
+      "raw": "2,555"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Revenue (total)",
+      "line_key": "revenue_total",
+      "value": 3133.0,
+      "unit": "m",
+      "raw": "3,133"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Revenue (total)",
+      "line_key": "revenue_total",
+      "value": 3784.0,
+      "unit": "m",
+      "raw": "3,784"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Company-operated",
+      "line_key": "revenue_company_operated",
+      "value": 1509.0,
+      "unit": "m",
+      "raw": "1,509"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Company-operated",
+      "line_key": "revenue_company_operated",
+      "value": 1918.0,
+      "unit": "m",
+      "raw": "1,918"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Company-operated",
+      "line_key": "revenue_company_operated",
+      "value": 2410.0,
+      "unit": "m",
+      "raw": "2,410"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Company-operated",
+      "line_key": "revenue_company_operated",
+      "value": 2980.0,
+      "unit": "m",
+      "raw": "2,980"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Company-operated",
+      "line_key": "revenue_company_operated",
+      "value": 3621.0,
+      "unit": "m",
+      "raw": "3,621"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Franchise / other",
+      "line_key": "revenue_franchise_other",
+      "value": 129.0,
+      "unit": "m",
+      "raw": "129"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Franchise / other",
+      "line_key": "revenue_franchise_other",
+      "value": 136.0,
+      "unit": "m",
+      "raw": "136"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Franchise / other",
+      "line_key": "revenue_franchise_other",
+      "value": 145.0,
+      "unit": "m",
+      "raw": "145"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Franchise / other",
+      "line_key": "revenue_franchise_other",
+      "value": 153.0,
+      "unit": "m",
+      "raw": "153"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Franchise / other",
+      "line_key": "revenue_franchise_other",
+      "value": 163.0,
+      "unit": "m",
+      "raw": "163"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Cost of sales",
+      "line_key": "cost_of_sales",
+      "value": 1214.0,
+      "unit": "m",
+      "raw": "1,214"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Cost of sales",
+      "line_key": "cost_of_sales",
+      "value": 1515.0,
+      "unit": "m",
+      "raw": "1,515"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Cost of sales",
+      "line_key": "cost_of_sales",
+      "value": 1873.0,
+      "unit": "m",
+      "raw": "1,873"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Cost of sales",
+      "line_key": "cost_of_sales",
+      "value": 2287.0,
+      "unit": "m",
+      "raw": "2,287"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Cost of sales",
+      "line_key": "cost_of_sales",
+      "value": 2751.0,
+      "unit": "m",
+      "raw": "2,751"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "CoS % of rev",
+      "line_key": "cos_pct_rev",
+      "value": 74.1,
+      "unit": "pct",
+      "raw": "74.1%"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "CoS % of rev",
+      "line_key": "cos_pct_rev",
+      "value": 73.7,
+      "unit": "pct",
+      "raw": "73.7%"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "CoS % of rev",
+      "line_key": "cos_pct_rev",
+      "value": 73.3,
+      "unit": "pct",
+      "raw": "73.3%"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "CoS % of rev",
+      "line_key": "cos_pct_rev",
+      "value": 73.0,
+      "unit": "pct",
+      "raw": "73.0%"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "CoS % of rev",
+      "line_key": "cos_pct_rev",
+      "value": 72.7,
+      "unit": "pct",
+      "raw": "72.7%"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "SG&A",
+      "line_key": "sga",
+      "value": 262.0,
+      "unit": "m",
+      "raw": "262"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "SG&A",
+      "line_key": "sga",
+      "value": 277.0,
+      "unit": "m",
+      "raw": "277"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "SG&A",
+      "line_key": "sga",
+      "value": 319.0,
+      "unit": "m",
+      "raw": "319"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "SG&A",
+      "line_key": "sga",
+      "value": 360.0,
+      "unit": "m",
+      "raw": "360"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "SG&A",
+      "line_key": "sga",
+      "value": 397.0,
+      "unit": "m",
+      "raw": "397"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "SG&A % of rev",
+      "line_key": "sga_pct_rev",
+      "value": 16.0,
+      "unit": "pct",
+      "raw": "16.0%"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "SG&A % of rev",
+      "line_key": "sga_pct_rev",
+      "value": 13.5,
+      "unit": "pct",
+      "raw": "13.5%"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "SG&A % of rev",
+      "line_key": "sga_pct_rev",
+      "value": 12.5,
+      "unit": "pct",
+      "raw": "12.5%"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "SG&A % of rev",
+      "line_key": "sga_pct_rev",
+      "value": 11.5,
+      "unit": "pct",
+      "raw": "11.5%"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "SG&A % of rev",
+      "line_key": "sga_pct_rev",
+      "value": 10.5,
+      "unit": "pct",
+      "raw": "10.5%"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "EBIT",
+      "line_key": "ebit",
+      "value": 162.0,
+      "unit": "m",
+      "raw": "162"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "EBIT",
+      "line_key": "ebit",
+      "value": 263.0,
+      "unit": "m",
+      "raw": "263"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "EBIT",
+      "line_key": "ebit",
+      "value": 363.0,
+      "unit": "m",
+      "raw": "363"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "EBIT",
+      "line_key": "ebit",
+      "value": 486.0,
+      "unit": "m",
+      "raw": "486"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "EBIT",
+      "line_key": "ebit",
+      "value": 636.0,
+      "unit": "m",
+      "raw": "636"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "EBIT margin",
+      "line_key": "ebit_margin_pct",
+      "value": 9.9,
+      "unit": "pct",
+      "raw": "9.9%"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "EBIT margin",
+      "line_key": "ebit_margin_pct",
+      "value": 12.8,
+      "unit": "pct",
+      "raw": "12.8%"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "EBIT margin",
+      "line_key": "ebit_margin_pct",
+      "value": 14.2,
+      "unit": "pct",
+      "raw": "14.2%"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "EBIT margin",
+      "line_key": "ebit_margin_pct",
+      "value": 15.5,
+      "unit": "pct",
+      "raw": "15.5%"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "EBIT margin",
+      "line_key": "ebit_margin_pct",
+      "value": 16.8,
+      "unit": "pct",
+      "raw": "16.8%"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "(memo) +D&A",
+      "line_key": "d_and_a",
+      "value": 90.0,
+      "unit": "m",
+      "raw": "90"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "(memo) +D&A",
+      "line_key": "d_and_a",
+      "value": 112.0,
+      "unit": "m",
+      "raw": "112"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "(memo) +D&A",
+      "line_key": "d_and_a",
+      "value": 134.0,
+      "unit": "m",
+      "raw": "134"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "(memo) +D&A",
+      "line_key": "d_and_a",
+      "value": 156.0,
+      "unit": "m",
+      "raw": "156"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "(memo) +D&A",
+      "line_key": "d_and_a",
+      "value": 178.0,
+      "unit": "m",
+      "raw": "178"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "(memo) EBITDA",
+      "line_key": "ebitda",
+      "value": 252.0,
+      "unit": "m",
+      "raw": "252"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "(memo) EBITDA",
+      "line_key": "ebitda",
+      "value": 375.0,
+      "unit": "m",
+      "raw": "375"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "(memo) EBITDA",
+      "line_key": "ebitda",
+      "value": 497.0,
+      "unit": "m",
+      "raw": "497"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "(memo) EBITDA",
+      "line_key": "ebitda",
+      "value": 642.0,
+      "unit": "m",
+      "raw": "642"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "(memo) EBITDA",
+      "line_key": "ebitda",
+      "value": 814.0,
+      "unit": "m",
+      "raw": "814"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Net interest",
+      "line_key": "net_interest",
+      "value": 28.0,
+      "unit": "m",
+      "raw": "28"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Net interest",
+      "line_key": "net_interest",
+      "value": 37.0,
+      "unit": "m",
+      "raw": "37"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Net interest",
+      "line_key": "net_interest",
+      "value": 53.0,
+      "unit": "m",
+      "raw": "53"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Net interest",
+      "line_key": "net_interest",
+      "value": 69.0,
+      "unit": "m",
+      "raw": "69"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Net interest",
+      "line_key": "net_interest",
+      "value": 87.0,
+      "unit": "m",
+      "raw": "87"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Pretax",
+      "line_key": "pretax",
+      "value": 134.0,
+      "unit": "m",
+      "raw": "134"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Pretax",
+      "line_key": "pretax",
+      "value": 226.0,
+      "unit": "m",
+      "raw": "226"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Pretax",
+      "line_key": "pretax",
+      "value": 310.0,
+      "unit": "m",
+      "raw": "310"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Pretax",
+      "line_key": "pretax",
+      "value": 417.0,
+      "unit": "m",
+      "raw": "417"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Pretax",
+      "line_key": "pretax",
+      "value": 549.0,
+      "unit": "m",
+      "raw": "549"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Tax @16%",
+      "line_key": "tax",
+      "value": 21.0,
+      "unit": "m",
+      "raw": "21"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Tax @16%",
+      "line_key": "tax",
+      "value": 36.0,
+      "unit": "m",
+      "raw": "36"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Tax @16%",
+      "line_key": "tax",
+      "value": 50.0,
+      "unit": "m",
+      "raw": "50"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Tax @16%",
+      "line_key": "tax",
+      "value": 67.0,
+      "unit": "m",
+      "raw": "67"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Tax @16%",
+      "line_key": "tax",
+      "value": 88.0,
+      "unit": "m",
+      "raw": "88"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Net income (total)",
+      "line_key": "net_income_total",
+      "value": 113.0,
+      "unit": "m",
+      "raw": "113"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Net income (total)",
+      "line_key": "net_income_total",
+      "value": 190.0,
+      "unit": "m",
+      "raw": "190"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Net income (total)",
+      "line_key": "net_income_total",
+      "value": 260.0,
+      "unit": "m",
+      "raw": "260"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Net income (total)",
+      "line_key": "net_income_total",
+      "value": 350.0,
+      "unit": "m",
+      "raw": "350"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Net income (total)",
+      "line_key": "net_income_total",
+      "value": 461.0,
+      "unit": "m",
+      "raw": "461"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "Economic shares (m)",
+      "line_key": "shares_economic_m",
+      "value": 188.0,
+      "unit": "m",
+      "raw": "188"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "Economic shares (m)",
+      "line_key": "shares_economic_m",
+      "value": 193.0,
+      "unit": "m",
+      "raw": "193"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "Economic shares (m)",
+      "line_key": "shares_economic_m",
+      "value": 199.0,
+      "unit": "m",
+      "raw": "199"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "Economic shares (m)",
+      "line_key": "shares_economic_m",
+      "value": 205.0,
+      "unit": "m",
+      "raw": "205"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "Economic shares (m)",
+      "line_key": "shares_economic_m",
+      "value": 211.0,
+      "unit": "m",
+      "raw": "211"
+    },
+    {
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "line_label": "EPS (economic)",
+      "line_key": "eps",
+      "value": 0.6,
+      "unit": "m",
+      "raw": "$0.60"
+    },
+    {
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "line_label": "EPS (economic)",
+      "line_key": "eps",
+      "value": 0.98,
+      "unit": "m",
+      "raw": "$0.98"
+    },
+    {
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "line_label": "EPS (economic)",
+      "line_key": "eps",
+      "value": 1.31,
+      "unit": "m",
+      "raw": "$1.31"
+    },
+    {
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "line_label": "EPS (economic)",
+      "line_key": "eps",
+      "value": 1.71,
+      "unit": "m",
+      "raw": "$1.71"
+    },
+    {
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "line_label": "EPS (economic)",
+      "line_key": "eps",
+      "value": 2.18,
+      "unit": "m",
+      "raw": "$2.18"
+    }
+  ],
+  "scenario_drivers": [
+    {
+      "scenario": "LOW",
+      "driver": "New shops/yr",
+      "value_raw": "155-170",
+      "value": null,
+      "effect": "Fewer units \u2192 less revenue base"
+    },
+    {
+      "scenario": "BAU",
+      "driver": "New shops/yr",
+      "value_raw": "190\u2192235",
+      "value": null,
+      "effect": "Fewer units \u2192 less revenue base"
+    },
+    {
+      "scenario": "HIGH",
+      "driver": "New shops/yr",
+      "value_raw": "200\u2192270",
+      "value": null,
+      "effect": "Fewer units \u2192 less revenue base"
+    },
+    {
+      "scenario": "LOW",
+      "driver": "Comps (SSS)",
+      "value_raw": "+2%",
+      "value": 2.0,
+      "effect": "Weaker/stronger AUV \u2192 drops at ~55% incremental margin"
+    },
+    {
+      "scenario": "BAU",
+      "driver": "Comps (SSS)",
+      "value_raw": "+4.5%",
+      "value": 4.5,
+      "effect": "Weaker/stronger AUV \u2192 drops at ~55% incremental margin"
+    },
+    {
+      "scenario": "HIGH",
+      "driver": "Comps (SSS)",
+      "value_raw": "+6.5%",
+      "value": 6.5,
+      "effect": "Weaker/stronger AUV \u2192 drops at ~55% incremental margin"
+    },
+    {
+      "scenario": "LOW",
+      "driver": "SG&A leverage",
+      "value_raw": "none (EBITDA ~18% flat)",
+      "value": null,
+      "effect": "The swing factor - no leverage keeps EBIT margin stuck ~10%"
+    },
+    {
+      "scenario": "BAU",
+      "driver": "SG&A leverage",
+      "value_raw": "18\u219221%",
+      "value": null,
+      "effect": "The swing factor - no leverage keeps EBIT margin stuck ~10%"
+    },
+    {
+      "scenario": "HIGH",
+      "driver": "SG&A leverage",
+      "value_raw": "18\u219223.5%",
+      "value": null,
+      "effect": "The swing factor - no leverage keeps EBIT margin stuck ~10%"
+    },
+    {
+      "scenario": "LOW",
+      "driver": "Rate on debt",
+      "value_raw": "8%",
+      "value": 8.0,
+      "effect": "Higher interest drag on debt-funded builds"
+    },
+    {
+      "scenario": "BAU",
+      "driver": "Rate on debt",
+      "value_raw": "6.5%",
+      "value": 6.5,
+      "effect": "Higher interest drag on debt-funded builds"
+    },
+    {
+      "scenario": "HIGH",
+      "driver": "Rate on debt",
+      "value_raw": "5%",
+      "value": 5.0,
+      "effect": "Higher interest drag on debt-funded builds"
+    }
+  ],
+  "scenario_outcomes": [
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2029,
+      "metric": "eps",
+      "value": 1.16,
+      "raw": "$1.16"
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2029,
+      "metric": "eps",
+      "value": 2.18,
+      "raw": "$2.18"
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2029,
+      "metric": "eps",
+      "value": 3.02,
+      "raw": "$3.02"
+    },
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2029,
+      "metric": "pe",
+      "value": 56.0,
+      "raw": "56x"
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2029,
+      "metric": "pe",
+      "value": 30.0,
+      "raw": "30x"
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2029,
+      "metric": "pe",
+      "value": 21.0,
+      "raw": "21x"
+    }
+  ],
+  "scenario_assumptions": [
+    {
+      "scenario": "LOW",
+      "assumptions": {
+        "Shops/yr": "~155-170",
+        "SSS": "+2%",
+        "EBITDA margin": "flat 18%",
+        "Rate": "8%"
+      },
+      "justification": "Openings decelerate as East expansion cannibalises; consumer/gas headwind caps comps; no SG&A leverage; rates stay high on debt-funded builds"
+    },
+    {
+      "scenario": "BAU",
+      "assumptions": {
+        "Shops/yr": "190\u2192235",
+        "SSS": "+4.5%",
+        "EBITDA margin": "18\u219221%",
+        "Rate": "6.5%"
+      },
+      "justification": "Guidance is \u2265185 opens + 4-6% comps; SG&A leverages as base scales; ties to $2.05-2.08bn rev / $370-380m EBITDA guide"
+    },
+    {
+      "scenario": "HIGH",
+      "assumptions": {
+        "Shops/yr": "200\u2192270",
+        "SSS": "+6.5%",
+        "EBITDA margin": "18\u219223.5%",
+        "Rate": "5%"
+      },
+      "justification": "Build machine accelerates; traffic-led comps sustain (7 straight quarters +ve transactions); margin approaches CAVA-style maturation; rates ease"
+    }
+  ],
+  "forward_pe": [
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "pe": 103.0
+    },
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "pe": 76.0
+    },
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "pe": 68.0
+    },
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "pe": 61.0
+    },
+    {
+      "scenario": "LOW",
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "pe": 56.0
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "pe": 103.0
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "pe": 65.0
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "pe": 49.0
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "pe": 38.0
+    },
+    {
+      "scenario": "BAU",
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "pe": 30.0
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2025,
+      "is_actual": true,
+      "pe": 103.0
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2026,
+      "is_actual": false,
+      "pe": 59.0
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2027,
+      "is_actual": false,
+      "pe": 40.0
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2028,
+      "is_actual": false,
+      "pe": 29.0
+    },
+    {
+      "scenario": "HIGH",
+      "fiscal_year": 2029,
+      "is_actual": false,
+      "pe": 21.0
+    }
+  ],
+  "peers": [
+    {
+      "peer": "BROS",
+      "metrics": {
+        "Trailing PE": {
+          "raw": "101x",
+          "value": 101.0
+        },
+        "Fwd PE": {
+          "raw": "~65x ('26)",
+          "value": null
+        },
+        "EV/EBITDA": {
+          "raw": "~40x",
+          "value": 40.0
+        },
+        "Unit growth": {
+          "raw": "14-16%",
+          "value": null
+        }
+      }
+    },
+    {
+      "peer": "Starbucks",
+      "metrics": {
+        "Trailing PE": {
+          "raw": "82x",
+          "value": 82.0
+        },
+        "Fwd PE": {
+          "raw": "mid-20s",
+          "value": null
+        },
+        "EV/EBITDA": {
+          "raw": "15-18x",
+          "value": null
+        },
+        "Unit growth": {
+          "raw": "low-single",
+          "value": null
+        }
+      }
+    },
+    {
+      "peer": "Chipotle",
+      "metrics": {
+        "Trailing PE": {
+          "raw": "30x",
+          "value": 30.0
+        },
+        "Fwd PE": {
+          "raw": "28x",
+          "value": 28.0
+        },
+        "EV/EBITDA": {
+          "raw": "20x",
+          "value": 20.0
+        },
+        "Unit growth": {
+          "raw": "~8%",
+          "value": 8.0
+        }
+      }
+    },
+    {
+      "peer": "Wingstop",
+      "metrics": {
+        "Trailing PE": {
+          "raw": "30-41x",
+          "value": null
+        },
+        "Fwd PE": {
+          "raw": "41-54x",
+          "value": null
+        },
+        "EV/EBITDA": {
+          "raw": "23-37x",
+          "value": null
+        },
+        "Unit growth": {
+          "raw": "~17%",
+          "value": 17.0
+        }
+      }
+    },
+    {
+      "peer": "CAVA",
+      "metrics": {
+        "Trailing PE": {
+          "raw": "150x+",
+          "value": null
+        },
+        "Fwd PE": {
+          "raw": "118x",
+          "value": 118.0
+        },
+        "EV/EBITDA": {
+          "raw": "41x",
+          "value": 41.0
+        },
+        "Unit growth": {
+          "raw": "~15%",
+          "value": 15.0
+        }
+      }
+    }
+  ],
+  "sensitivities": [
+    {
+      "factor_label": "Oil/gas - direct",
+      "factor_code": "OIL_DIRECT",
+      "fiscal_year": 2027,
+      "move": "+$1/gal retail",
+      "move_value": null,
+      "eps_impact_pct": -7.0,
+      "eps_impact_raw": "-7%",
+      "is_aggregate": false,
+      "is_multiple_effect": false,
+      "channel": "Drive-thru traffic falls, low-income guest pulls back (-1.5pp SSS). Wingstop blamed gas for its Q1'26 comp miss"
+    },
+    {
+      "factor_label": "Oil/gas - indirect",
+      "factor_code": "OIL_INDIRECT",
+      "fiscal_year": 2027,
+      "move": "same move",
+      "move_value": null,
+      "eps_impact_pct": -5.0,
+      "eps_impact_raw": "-5%",
+      "is_aggregate": false,
+      "is_multiple_effect": false,
+      "channel": "Petrochemical packaging (cups/lids/straws) + diesel freight/distribution \u2192 ~+0.6pp CoS"
+    },
+    {
+      "factor_label": "Oil/gas - TOTAL",
+      "factor_code": "OIL_TOTAL",
+      "fiscal_year": 2027,
+      "move": "+$1/gal",
+      "move_value": null,
+      "eps_impact_pct": -12.0,
+      "eps_impact_raw": "\u2248 -12%",
+      "is_aggregate": true,
+      "is_multiple_effect": false,
+      "channel": "Direct + indirect stacked"
+    },
+    {
+      "factor_label": "Coffee + dairy (non-oil)",
+      "factor_code": "COFFEE",
+      "fiscal_year": 2027,
+      "move": "+100bps CoS/rev",
+      "move_value": null,
+      "eps_impact_pct": -8.0,
+      "eps_impact_raw": "-8%",
+      "is_aggregate": false,
+      "is_multiple_effect": false,
+      "channel": "Agricultural cycles (Brazil frost, feed/weather) - not oil-driven; the bulk of input cost sits here, so oil is a minority of input-cost risk"
+    },
+    {
+      "factor_label": "Wage inflation",
+      "factor_code": "WAGE",
+      "fiscal_year": 2027,
+      "move": "+100bps CoS/rev",
+      "move_value": null,
+      "eps_impact_pct": -8.0,
+      "eps_impact_raw": "-8%",
+      "is_aggregate": false,
+      "is_multiple_effect": false,
+      "channel": "Shop labour; state minimum-wage moves"
+    },
+    {
+      "factor_label": "Rates - earnings",
+      "factor_code": "RATES_EARNINGS",
+      "fiscal_year": 2027,
+      "move": "+100bps",
+      "move_value": 100.0,
+      "eps_impact_pct": -2.6,
+      "eps_impact_raw": "-2.6%",
+      "is_aggregate": false,
+      "is_multiple_effect": false,
+      "channel": "Small; interest only ~2% of revenue"
+    },
+    {
+      "factor_label": "Rates - valuation",
+      "factor_code": "RATES_VALUATION",
+      "fiscal_year": 2027,
+      "move": "+100bps 10Y",
+      "move_value": null,
+      "eps_impact_pct": null,
+      "eps_impact_raw": "multiple",
+      "is_aggregate": false,
+      "is_multiple_effect": true,
+      "channel": "Large; ~100x long-duration equity, ~15-20% de-rate risk"
+    }
+  ],
+  "sensitivity_anchor": "Oil is split into direct (demand/traffic) and indirect (cost) - both attributed to oil - so it isn't double-counted with genuinely non-oil inputs. Anchor: +100bps CoS/rev \u2248 -8.2% EPS; -1.5pp SSS \u2248 -6.8% EPS.",
+  "risks": [],
+  "narrative": {
+    "what_moves_the_lines": "Revenue is unit-count \u00d7 AUV (comps +4.5%). CoS % barely moves (73-74%) - shop-level costs scale with volume. The earnings leverage is almost entirely SG&A falling 16.0% \u2192 10.5% as corporate overhead spreads over 2.3\u00d7 the revenue \u2192 EBIT margin 9.9% \u2192 16.8%. Interest rises as debt-funded new-shop capex builds.",
+    "shares_note": "No buyback authorised (thin FCF - all cash into growth). Count rises ~3%/yr from two dilutive sources: stock-based comp and Up-C (Class B/LLC-unit) conversions to Class A. So EPS growth trails NI growth by ~3pts/yr. If a buyback were introduced (not expected), each -1%/yr net share change \u2248 +1% EPS.",
+    "read": "the bull/bear gap is driven far more by SG&A operating leverage and comp durability than by unit count alone. In LOW, margins never inflect and EPS only reaches $1.16 by 2029 - the PE stays stranded at ~56x (expensive for a decelerating story = de-rating risk). In HIGH, margin maturation toward CAVA-style levels compounds EPS to $3.02, taking the PE to ~21x.",
+    "bottom_line": "priced for near-perfection at ~100x; BAU earnings drag the PE to ~30x by 2029 at a flat price, but LOW leaves it stranded at ~56x - that gap is the de-rating risk. The bull/bear swing is SG&A leverage + comps, not unit count. Rates barely touch earnings but dominate the multiple; oil is a double-hit (traffic + packaging/freight). No buy/sell call."
+  },
+  "raw_markdown": "# Dutch Bros (BROS) \u2014 PE & Earnings Model\n**Price:** $64.67 (28 Jul 2026) \u00b7 **Data:** Q1 FY2026 + FY2025 10-K \u00b7 **NYSE**\n\nBAU calibrated to management's raised FY2026 guidance ($2.05\u20132.08bn rev / $370\u2013380m adj. EBITDA). Economic EPS = total NI \u00f7 total economic shares. Up-C: FY2025 total NI $117.3m, of which $79.8m attributable to Class A.\n\n### PE from earnings \u00f7 shares (both routes converge)\n\n| Basis | NI | Shares | EPS | PE |\n|---|---|---|---|---|\n| Reported (Class A) | $79.8m | 125.8m | $0.64 | 101x |\n| Economic (total) | $117.3m | 187.7m | $0.625 | 103x |\n\n### BAU net income bridge \u2192 shares \u2192 EPS ($m unless noted)\n\n| Line | 2025A | 2026E | 2027E | 2028E | 2029E |\n|---|---|---|---|---|---|\n| **Revenue (total)** | 1,638 | 2,055 | 2,555 | 3,133 | 3,784 |\n| \u2014 Company-operated | 1,509 | 1,918 | 2,410 | 2,980 | 3,621 |\n| \u2014 Franchise / other | 129 | 136 | 145 | 153 | 163 |\n| **Cost of sales** | 1,214 | 1,515 | 1,873 | 2,287 | 2,751 |\n| \u2014 CoS % of rev | 74.1% | 73.7% | 73.3% | 73.0% | 72.7% |\n| **SG&A** | 262 | 277 | 319 | 360 | 397 |\n| \u2014 SG&A % of rev | 16.0% | 13.5% | 12.5% | 11.5% | 10.5% |\n| **EBIT** | 162 | 263 | 363 | 486 | 636 |\n| \u2014 EBIT margin | 9.9% | 12.8% | 14.2% | 15.5% | 16.8% |\n| *(memo) +D&A* | 90 | 112 | 134 | 156 | 178 |\n| *(memo) EBITDA* | 252 | 375 | 497 | 642 | 814 |\n| Net interest | 28 | 37 | 53 | 69 | 87 |\n| Pretax | 134 | 226 | 310 | 417 | 549 |\n| Tax @16% | 21 | 36 | 50 | 67 | 88 |\n| **Net income (total)** | 113 | 190 | 260 | 350 | 461 |\n| Economic shares (m) | 188 | 193 | 199 | 205 | 211 |\n| **EPS (economic)** | **$0.60** | **$0.98** | **$1.31** | **$1.71** | **$2.18** |\n\n**What moves the lines:** Revenue is unit-count \u00d7 AUV (comps +4.5%). **CoS % barely moves** (73\u201374%) \u2014 shop-level costs scale with volume. The earnings leverage is almost entirely **SG&A falling 16.0% \u2192 10.5%** as corporate overhead spreads over 2.3\u00d7 the revenue \u2192 EBIT margin 9.9% \u2192 16.8%. Interest rises as debt-funded new-shop capex builds.\n\n**Shares:** No buyback authorised (thin FCF \u2014 all cash into growth). Count **rises ~3%/yr** from two dilutive sources: stock-based comp and Up-C (Class B/LLC-unit) conversions to Class A. So EPS growth trails NI growth by ~3pts/yr. *If* a buyback were introduced (not expected), each \u20111%/yr net share change \u2248 +1% EPS.\n\n### Low / High \u2014 what changes earnings, costs & PE (vs BAU)\n\n| Driver | LOW | BAU | HIGH | Earnings/cost effect |\n|---|---|---|---|---|\n| New shops/yr | 155\u2013170 | 190\u2192235 | 200\u2192270 | Fewer units \u2192 less revenue base |\n| Comps (SSS) | +2% | +4.5% | +6.5% | Weaker/stronger AUV \u2192 drops at ~55% incremental margin |\n| SG&A leverage | none (EBITDA ~18% flat) | 18\u219221% | 18\u219223.5% | **The swing factor** \u2014 no leverage keeps EBIT margin stuck ~10% |\n| Rate on debt | 8% | 6.5% | 5% | Higher interest drag on debt-funded builds |\n| **\u2192 2029 EPS** | **$1.16** | **$2.18** | **$3.02** | |\n| **\u2192 2029 PE @ $64.67** | **56x** | **30x** | **21x** | |\n\n**Read:** the bull/bear gap is driven far more by **SG&A operating leverage and comp durability** than by unit count alone. In LOW, margins never inflect and EPS only reaches $1.16 by 2029 \u2014 the PE stays stranded at ~56x (expensive for a decelerating story = de-rating risk). In HIGH, margin maturation toward CAVA-style levels compounds EPS to $3.02, taking the PE to ~21x.\n\n### Forward PE at constant $64.67 (multiple self-compresses as EPS grows)\n\n| Scenario | 2025A | 2026E | 2027E | 2028E | 2029E |\n|---|---|---|---|---|---|\n| LOW | 103 | 76 | 68 | 61 | 56 |\n| BAU | 103 | 65 | 49 | 38 | 30 |\n| HIGH | 103 | 59 | 40 | 29 | 21 |\n\n### Scenario assumptions + justification\n\n| Scenario | Shops/yr | SSS | EBITDA margin | Rate | Justification |\n|---|---|---|---|---|---|\n| LOW | ~155\u2013170 | +2% | flat 18% | 8% | Openings decelerate as East expansion cannibalises; consumer/gas headwind caps comps; no SG&A leverage; rates stay high on debt-funded builds |\n| BAU | 190\u2192235 | +4.5% | 18\u219221% | 6.5% | Guidance is \u2265185 opens + 4\u20136% comps; SG&A leverages as base scales; ties to $2.05\u20132.08bn rev / $370\u2013380m EBITDA guide |\n| HIGH | 200\u2192270 | +6.5% | 18\u219223.5% | 5% | Build machine accelerates; traffic-led comps sustain (7 straight quarters +ve transactions); margin approaches CAVA-style maturation; rates ease |\n\n### vs peers\n\n| | Trailing PE | Fwd PE | EV/EBITDA | Unit growth |\n|---|---|---|---|---|\n| BROS | 101x | ~65x ('26) | ~40x | 14\u201316% |\n| Starbucks | 82x | mid-20s | 15\u201318x | low-single |\n| Chipotle | 30x | 28x | 20x | ~8% |\n| Wingstop | 30\u201341x | 41\u201354x | 23\u201337x | ~17% |\n| CAVA | 150x+ | 118x | 41x | ~15% |\n\nAbove every comp except CAVA \u2014 justified only by the fastest credible EPS CAGR.\n\n### External-factor sensitivity (2027E EPS, off BAU)\n\nOil is split into **direct** (demand/traffic) and **indirect** (cost) \u2014 both attributed to oil \u2014 so it isn't double-counted with genuinely non-oil inputs. Anchor: +100bps CoS/rev \u2248 \u20118.2% EPS; \u20111.5pp SSS \u2248 \u20116.8% EPS.\n\n| Factor | Move | EPS impact | Channel |\n|---|---|---|---|\n| **Oil/gas \u2014 direct** | +$1/gal retail | **\u20117%** | Drive-thru traffic falls, low-income guest pulls back (\u20111.5pp SSS). Wingstop blamed gas for its Q1'26 comp miss |\n| **Oil/gas \u2014 indirect** | same move | **\u20115%** | Petrochemical packaging (cups/lids/straws) + diesel freight/distribution \u2192 ~+0.6pp CoS |\n| **Oil/gas \u2014 TOTAL** | +$1/gal | **\u2248 \u201112%** | Direct + indirect stacked |\n| Coffee + dairy (**non-oil**) | +100bps CoS/rev | \u20118% | Agricultural cycles (Brazil frost, feed/weather) \u2014 *not* oil-driven; the bulk of input cost sits here, so oil is a minority of input-cost risk |\n| Wage inflation | +100bps CoS/rev | \u20118% | Shop labour; state minimum-wage moves |\n| Rates \u2014 earnings | +100bps | \u20112.6% | Small; interest only ~2% of revenue |\n| Rates \u2014 valuation | +100bps 10Y | *multiple* | Large; ~100x long-duration equity, ~15\u201320% de-rate risk |\n\n**Note on oil vs input costs:** oil genuinely drives packaging and freight (the indirect channel above), but the two largest ingredient lines \u2014 coffee and dairy \u2014 move on their own supply cycles, so oil is *not* the majority of input-cost risk. Kept separate to avoid conflation.\n\n**One-line justification:** priced for near-perfection at ~100x; BAU earnings drag the PE to ~30x by 2029 at a flat price, but LOW leaves it stranded at ~56x \u2014 that gap is the de-rating risk. The bull/bear swing is SG&A leverage + comps, not unit count. Rates barely touch earnings but dominate the multiple; oil is a double-hit (traffic + packaging/freight). No buy/sell call.\n\n---\n*Model figures; verify against primary sources. Q2 FY2026 reports 5 Aug 2026 \u2014 refresh after.*\n",
+  "warnings": [
+    "optional section absent: risks"
+  ]
+}

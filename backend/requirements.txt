@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+supabase
+cryptography
+requests
+yfinance
+pydantic-settings
+python-dotenv

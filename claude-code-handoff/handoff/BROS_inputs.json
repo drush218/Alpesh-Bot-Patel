@@ -1,0 +1,290 @@
+{
+ "meta": {
+  "ticker": "BROS",
+  "company": "Dutch Bros",
+  "exchange": "NYSE",
+  "reporting_currency": "USD",
+  "price_currency": "USD",
+  "units": "m",
+  "fiscal_year_end": "12-31",
+  "base_year": "FY2025",
+  "forecast_years": [
+   "FY2026",
+   "FY2027",
+   "FY2028"
+  ],
+  "data_as_of": "2026-07-28",
+  "data_sources": [
+   "FY2025 10-K",
+   "Q1 FY2026 release"
+  ],
+  "structure_note": "Up-C: EPS on total NI \u00f7 total economic shares (Class A + LLC units).",
+  "reference_price": {
+   "value": 64.67,
+   "date": "2026-07-28"
+  }
+ },
+ "revenue": {
+  "segments": [
+   {
+    "name": "Company-operated",
+    "base": 1509,
+    "base_ref": "FY2025 10-K segment note",
+    "growth": [
+     {
+      "pct": 27.1,
+      "source": "guidance",
+      "ref": "FY26 rev guide $2.05\u20132.08bn; \u2265185 openings + 4\u20136% comps"
+     },
+     {
+      "pct": 25.7,
+      "source": "assumption",
+      "ref": "~210 openings + 4.5% comps"
+     },
+     {
+      "pct": 23.7,
+      "source": "assumption",
+      "ref": "~235 openings + 4.5% comps"
+     }
+    ]
+   },
+   {
+    "name": "Franchise / other",
+    "base": 129,
+    "base_ref": "FY2025 10-K segment note",
+    "growth": [
+     {
+      "pct": 5.4,
+      "source": "assumption",
+      "ref": "Few franchise openings; royalty on comps"
+     },
+     {
+      "pct": 6.6,
+      "source": "assumption",
+      "ref": "As prior year"
+     },
+     {
+      "pct": 5.5,
+      "source": "assumption",
+      "ref": "As prior year"
+     }
+    ]
+   }
+  ]
+ },
+ "operating_margin": [
+  {
+   "pct": 12.8,
+   "source": "guidance",
+   "ref": "Implied by $370\u2013380m adj. EBITDA guide less ~$112m D&A"
+  },
+  {
+   "pct": 14.2,
+   "source": "assumption",
+   "ref": "SG&A 13.5%\u219212.5% of revenue"
+  },
+  {
+   "pct": 15.5,
+   "source": "assumption",
+   "ref": "SG&A \u219211.5% of revenue"
+  }
+ ],
+ "net_interest": [
+  {
+   "value": -37,
+   "source": "assumption",
+   "ref": "Debt-funded capex at 6.5%"
+  },
+  {
+   "value": -53,
+   "source": "assumption",
+   "ref": "As above"
+  },
+  {
+   "value": -69,
+   "source": "assumption",
+   "ref": "As above"
+  }
+ ],
+ "tax_rate": [
+  {
+   "pct": 16,
+   "source": "filing",
+   "ref": "FY2025 effective rate (Up-C)"
+  },
+  {
+   "pct": 16,
+   "source": "assumption",
+   "ref": "Held"
+  },
+  {
+   "pct": 16,
+   "source": "assumption",
+   "ref": "Held"
+  }
+ ],
+ "shares": {
+  "base_diluted": 187.7,
+  "base_ref": "Q1 FY2026 10-Q: Class A + Class B/D economic units",
+  "annual_change": [
+   {
+    "pct": 0,
+    "source": "none"
+   },
+   {
+    "pct": 0,
+    "source": "none"
+   },
+   {
+    "pct": 0,
+    "source": "none"
+   }
+  ]
+ },
+ "scenarios": {
+  "low": {
+   "growth_pp": -8,
+   "margin_pp": -3,
+   "ref": "Openings slow to ~160/yr, comps +2%, no SG&A leverage"
+  },
+  "high": {
+   "growth_pp": 4,
+   "margin_pp": 1.5,
+   "ref": "Openings 200\u2192270, comps +6.5%, CAVA-style margin path"
+  }
+ },
+ "calendar": [
+  {
+   "date": "2026-08-05",
+   "event": "Q2 FY2026 results",
+   "type": "earnings",
+   "confirmed": true,
+   "source": "IR site"
+  },
+  {
+   "date": "2026-11-04",
+   "event": "Q3 FY2026 results",
+   "type": "earnings",
+   "confirmed": false,
+   "source": "Prior-year pattern"
+  }
+ ],
+ "macro": [
+  {
+   "factor": "us_gasoline_retail",
+   "channel": "demand",
+   "direction": "bear",
+   "strength": "medium",
+   "speed": "near",
+   "ref": "Drive-thru traffic; +$1/gal \u2248 \u22121.5pp comps"
+  },
+  {
+   "factor": "oil",
+   "channel": "cost",
+   "direction": "bear",
+   "strength": "mild",
+   "speed": "near",
+   "ref": "Packaging + freight \u2248 +0.6pp CoS"
+  },
+  {
+   "factor": "labour",
+   "channel": "cost",
+   "direction": "bear",
+   "strength": "strong",
+   "speed": "immediate",
+   "ref": "Shop labour inside 74% CoS"
+  },
+  {
+   "factor": "rates_10y",
+   "channel": "valuation",
+   "direction": "bear",
+   "strength": "strong",
+   "speed": "immediate",
+   "ref": "~100x long-duration equity"
+  },
+  {
+   "factor": "rates_policy",
+   "channel": "earnings",
+   "direction": "bear",
+   "strength": "mild",
+   "speed": "near",
+   "ref": "Interest ~2% of revenue"
+  }
+ ],
+ "backtests": [
+  {
+   "factor": "us_gasoline_retail",
+   "series": "GASREGW",
+   "provider": "FRED",
+   "frequency": "weekly",
+   "lookback": "4y",
+   "hypothesis": "Negative beta to US retail gasoline via traffic"
+  },
+  {
+   "factor": "rates_10y",
+   "series": "DGS10",
+   "provider": "FRED",
+   "frequency": "weekly",
+   "lookback": "4y",
+   "hypothesis": "Strong negative beta \u2014 multiple compression"
+  }
+ ],
+ "levers": [
+  {
+   "base": "cost",
+   "lever_name": "Shop labour",
+   "exposure": "partial",
+   "exposure_pct": 30,
+   "speed": "immediate",
+   "direction": "bear",
+   "macro_factor_code": "labour",
+   "watch_metric": "State minimum-wage changes",
+   "current_reading": "CA/OR/WA rises Jan 2026",
+   "pushes_low": "Wage inflation >5%",
+   "pushes_high": "Labour scheduling gains"
+  }
+ ],
+ "bottom_line": "ILLUSTRATIVE FIXTURE built from the July 2026 BROS file \u2014 not a refreshed analysis.",
+ "proposed_factors": [
+  {
+   "code": "us_gasoline_retail",
+   "name": "US retail gasoline price",
+   "series": "GASREGW",
+   "provider": "FRED",
+   "scope": "company",
+   "other_names": [],
+   "rationale": "Pump price, not crude, drives drive-thru traffic; crude lags and misses refining margin"
+  }
+ ],
+ "scorecard_suggested": {
+  "growth": {
+   "score": 5,
+   "ref": "BAU revenue CAGR ~24% FY25\u201328; \u2265185 openings/yr guided"
+  },
+  "value": {
+   "score": 1,
+   "ref": "~65x FY26 BAU EPS; above all peers except CAVA"
+  },
+  "income": {
+   "score": 1,
+   "ref": "No dividend, no buyback; all cash into openings"
+  },
+  "bull_catalysts": [
+   {
+    "text": "Q2 comps \u2265 +6% with positive transactions",
+    "date": "2026-08-05"
+   },
+   {
+    "text": "Raised FY26 opening guidance"
+   }
+  ],
+  "bear_catalysts": [
+   {
+    "text": "US gasoline > $4/gal sustained"
+   },
+   {
+    "text": "SG&A % of revenue fails to fall in H2"
+   }
+  ]
+ }
+}
