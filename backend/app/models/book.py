@@ -15,10 +15,16 @@ class LedgerRow(BaseModel):
     cost_basis_of_book_pct: float | None = None  # cost_gbp / total_book_gbp * 100, for the weight-bar dot
     index_code: str | None = None
     modelled: bool = False
-    # Deferred to a future pass (needs the expected-move regression model): always null this pass.
-    today_vs_exp_pct: float | None = None
-    has_flag: bool = False
+    # Expected-move check (services/expected_move.py); null when there's under 60 days of history.
+    today_vs_exp_pct: float | None = None     # actual day move, %
+    expected_pct: float | None = None         # what the index move implies, %
+    residual_pct: float | None = None
     z_score: float | None = None
+    flag: str | None = None                   # "unexplained" | "earnings" | None
+    has_flag: bool = False                    # unexplained only
+    move_date: str | None = None
+    index_beta: float | None = None
+    fit_r2: float | None = None
     # Deferred to a future pass (needs analysis EPS x macro-adjustment, and Macro doesn't exist yet).
     live_pe: float | None = None
     # Deferred to a future pass (needs EPS-scenario x forward-PE derivation from Analysis).
@@ -39,7 +45,7 @@ class IndexExposureRow(BaseModel):
 class BookSummary(BaseModel):
     holdings_count: int
     total_book_gbp: float
-    unexplained_count: int = 0         # deferred, always 0 this pass
+    unexplained_count: int = 0
     no_model_count: int
 
 

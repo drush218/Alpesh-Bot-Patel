@@ -1,12 +1,10 @@
-import logging
 from functools import lru_cache
 
 from cryptography.fernet import Fernet
 
-from app.config import settings
-from app.supabase_client import get_supabase
+from supabase import Client
 
-logger = logging.getLogger(__name__)
+from app.config import settings
 
 
 @lru_cache
@@ -15,9 +13,8 @@ def _fernet() -> Fernet:
     return Fernet(key.encode() if isinstance(key, str) else key)
 
 
-def get_t212_credentials(user_id: str) -> tuple[str | None, str | None]:
-    """Return decrypted (api_key, api_secret) or (None, None) if not saved."""
-    supabase = get_supabase()
+def get_t212_credentials(supabase: Client, user_id: str) -> tuple[str | None, str | None]:
+    """Return decrypted (api_key, api_secret) or (None, None) if not saved. supabase must be a user client."""
     f = _fernet()
 
     try:
@@ -40,5 +37,14 @@ def get_t212_credentials(user_id: str) -> tuple[str | None, str | None]:
         )
         return api_key, api_secret
     except Exception:
-        logger.exception("Failed to load T212 credentials for user %s", user_id)
         return None, None
+
+
+def save_t212_credentials(supabase: Client, user_id: str, api_key: str, api_secret: str) -> None:
+    """Encrypt and upsert Trading212 credentials (same format as the Streamlit app). supabase must be a user client."""
+    f = _fernet()
+    supabase.table("user_settings").upsert({
+        "id": user_id,
+        "t212_api_key": f.encrypt(api_key.encode()).decode(),
+        "t212_api_secret": f.encrypt(api_secret.encode()).decode(),
+    }, on_conflict="id").execute()

@@ -14,7 +14,7 @@ const FILTER_OPTIONS: { value: Filter; label: string }[] = [
   { value: 'modelled', label: 'Modelled' },
 ]
 
-export function BookScreen() {
+export function BookScreen({ onOpenAnalysis }: { onOpenAnalysis: (ticker: string) => void }) {
   const [data, setData] = useState<BookResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -71,7 +71,7 @@ export function BookScreen() {
       </div>
 
       <WeightingByIndexPanel rows={data.index_exposure} />
-      <Ledger rows={filteredLedger} />
+      <Ledger rows={filteredLedger} onOpenAnalysis={onOpenAnalysis} />
     </main>
   )
 }

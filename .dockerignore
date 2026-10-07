@@ -1,0 +1,13 @@
+.git
+.claude
+**/node_modules
+**/venv
+**/__pycache__
+frontend/dist
+**/.env
+**/.env.*
+!**/.env.example
+.env
+.streamlit
+tests
+ABP.ipynb

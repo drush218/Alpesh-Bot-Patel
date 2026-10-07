@@ -15,8 +15,14 @@ export interface LedgerRow {
   index_code: string | null
   modelled: boolean
   today_vs_exp_pct: number | null
-  has_flag: boolean
+  expected_pct: number | null
+  residual_pct: number | null
   z_score: number | null
+  flag: 'unexplained' | 'earnings' | null
+  has_flag: boolean
+  move_date: string | null
+  index_beta: number | null
+  fit_r2: number | null
   live_pe: number | null
   band_pct: number | null
   band_low: number | null

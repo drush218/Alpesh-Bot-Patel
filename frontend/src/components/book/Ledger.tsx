@@ -4,9 +4,10 @@ import { LedgerRow } from './LedgerRow'
 
 interface Props {
   rows: LedgerRowType[]
+  onOpenAnalysis: (ticker: string) => void
 }
 
-export function Ledger({ rows }: Props) {
+export function Ledger({ rows, onOpenAnalysis }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   return (
@@ -51,12 +52,13 @@ export function Ledger({ rows }: Props) {
               row={row}
               open={expanded === row.ticker}
               onToggle={() => setExpanded((prev) => (prev === row.ticker ? null : row.ticker))}
+              onOpenAnalysis={onOpenAnalysis}
             />
           ))
         )}
       </section>
       <p style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 8 }}>
-        bars GBP weight, 20% scale · ○ cost basis · accent gutter = open flag · band = price in LOW–HIGH at reference multiple
+        bars GBP weight, 20% scale · ○ cost basis · accent gutter = unexplained move (|z| ≥ 2.5 vs its index) · band = price in LOW–HIGH at reference multiple
       </p>
     </>
   )
