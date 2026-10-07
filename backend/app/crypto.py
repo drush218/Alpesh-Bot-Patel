@@ -1,9 +1,12 @@
+import logging
 from functools import lru_cache
 
 from cryptography.fernet import Fernet
 
 from app.config import settings
 from app.supabase_client import get_supabase
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -37,4 +40,5 @@ def get_t212_credentials(user_id: str) -> tuple[str | None, str | None]:
         )
         return api_key, api_secret
     except Exception:
+        logger.exception("Failed to load T212 credentials for user %s", user_id)
         return None, None
