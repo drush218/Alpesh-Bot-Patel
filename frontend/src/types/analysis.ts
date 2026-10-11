@@ -112,15 +112,33 @@ export interface Catalyst {
   status: CatalystStatus
 }
 
-export type Dimension = 'growth' | 'value' | 'income'
+export type Dimension = 'growth' | 'value' | 'income' | 'macro'
 
 export interface ScorecardIn {
-  growth: number
-  value: number
-  income: number
+  growth: number | null // 0–3
+  value: number | null
+  income: number | null
+  macro: number | null
   bull_catalysts: Catalyst[]
   bear_catalysts: Catalyst[]
   note: string | null
+  target_pe: number | null
+  target_pe_note: string | null
+}
+
+export type DividendMode = 'per_payment' | 'half' | 'annual' | 'uneven'
+
+export interface DividendInput {
+  mode: DividendMode
+  amount: number | null
+  frequency: 1 | 2 | 4 | 12 | null
+  payments: number[]
+}
+
+export interface DividendResponse {
+  input: DividendInput | null
+  annual_dps: number | null // quote currency per share
+  yahoo_ttm: number | null
 }
 
 export interface ScorecardResponse {
@@ -128,9 +146,10 @@ export interface ScorecardResponse {
   versions: number
   suggested: {
     as_of: string | null
-    growth: { score: number; ref: string } | null
-    value: { score: number; ref: string } | null
-    income: { score: number; ref: string } | null
+    growth: { score: number | null; score_1_5: number | null; ref: string } | null
+    value: { score: number | null; score_1_5: number | null; ref: string } | null
+    income: { score: number | null; score_1_5: number | null; ref: string } | null
+    macro?: null
     bull_catalysts: { text: string; date?: string }[]
     bear_catalysts: { text: string; date?: string }[]
   } | null
@@ -143,6 +162,20 @@ export interface MacroLink {
   strength: 'negligible' | 'mild' | 'medium' | 'strong'
   speed: 'immediate' | 'near' | 'lagged'
   ref?: string
+  sensitivity?: number // -2..+2 to the factor rising (medium counts as strong)
+  move?: 'up' | 'down' | 'flat' | null // factor's latest 1-month move
+  effect?: number | null // sensitivity × move: today's headwind (−) / tailwind (+); null = no data
+}
+
+export interface MacroSummary {
+  tailwind: number
+  tailwind_links: number
+  headwind: number
+  headwind_links: number
+  neutral_links: number
+  no_data_links: number
+  net: number
+  verdict: string
 }
 
 export interface Lever {
@@ -176,6 +209,7 @@ export interface AnalysisView {
   meta: ModelInputs['meta'] & { data_sources?: string[]; structure_note?: string; price_currency?: string }
   bottom_line: string | null
   macro: MacroLink[]
+  macro_summary: MacroSummary
   levers: Lever[]
   calendar: CalendarEvent[]
   warnings: string[]
@@ -197,4 +231,28 @@ export interface AnalysisView {
     dropped_years: string[]
     bottom_line_was: string | null
   } | null
+}
+
+export interface AnalysesRow {
+  ticker: string
+  company: string
+  held: boolean
+  weight_pct: number | null
+  ppl_pct: number | null
+  price: number | null
+  price_currency: string | null
+  pe: number | null
+  pe_year: string | null
+  eps_cagr: number | null
+  eps_cagr_years: string | null
+  scores: { growth: number | null; value: number | null; income: number | null; macro: number | null } | null
+  macro: MacroSummary
+  stale: boolean
+  data_as_of: string | null
+}
+
+export interface AnalysesList {
+  rows: AnalysesRow[]
+  holdings_available: boolean
+  not_modelled: string[]
 }

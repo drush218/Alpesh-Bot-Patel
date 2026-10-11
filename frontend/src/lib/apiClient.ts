@@ -4,7 +4,7 @@ import type { AccountSummary, BenchmarksResponse } from '../types/account'
 import type { IngestPreview, SettingsStatus } from '../types/settings'
 import type { MacroView } from '../types/macro'
 import type { DashboardData } from '../types/dashboard'
-import type { AnalysisView, Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
+import type { AnalysesList, AnalysisView, DividendInput, DividendResponse, Override, ScenarioSummary, ScorecardIn, ScorecardResponse, WorkspaceResult } from '../types/analysis'
 
 // Unset in production: the backend serves this app, so API calls are same-origin.
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -70,6 +70,10 @@ export async function listAnalysed(): Promise<string[]> {
   return (await authedFetch('/api/analysis')).json()
 }
 
+export async function fetchAnalyses(): Promise<AnalysesList> {
+  return (await authedFetch('/api/analyses')).json()
+}
+
 export async function fetchAnalysis(ticker: string): Promise<AnalysisView> {
   return (await authedFetch(`/api/analysis/${enc(ticker)}`)).json()
 }
@@ -96,6 +100,23 @@ export async function saveScenario(
 
 export async function deleteScenario(ticker: string, id: number): Promise<void> {
   await authedFetch(`/api/analysis/${enc(ticker)}/scenarios/${id}`, { method: 'DELETE' })
+}
+
+export async function fetchDividend(ticker: string): Promise<DividendResponse> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}/dividend`)).json()
+}
+
+export async function saveDividend(ticker: string, input: DividendInput): Promise<DividendResponse> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}/dividend`, { method: 'PUT', body: JSON.stringify(input) })).json()
+}
+
+export async function clearDividend(ticker: string): Promise<DividendResponse> {
+  return (await authedFetch(`/api/analysis/${enc(ticker)}/dividend`, { method: 'DELETE' })).json()
+}
+
+/** Store edited inputs as a new version of the analysis (ingest path); the old one is kept as history. */
+export async function saveAsBase(ticker: string, overrides: Override[]): Promise<{ analysis_id: number; changes: string[] }> {
+  return (await post(`/api/analysis/${enc(ticker)}/base`, { overrides })).json()
 }
 
 export async function fetchScorecard(ticker: string): Promise<ScorecardResponse> {

@@ -2,12 +2,12 @@ import type { ReactNode } from 'react'
 import { Chip } from '../common/Chip'
 import { currencySymbol, fmt, signed } from '../../lib/modelRows'
 import { formatGbp } from '../../lib/format'
-import type { AnalysisView, Lever, MacroLink } from '../../types/analysis'
+import { sensitivityText, signedInt, verdictTone, weightLabel } from '../../lib/macro'
+import type { AnalysisView, Lever, MacroLink, MacroSummary } from '../../types/analysis'
 
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(iso.length === 10 ? `${iso}T00:00:00` : iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
 const sans = { fontFamily: "'IBM Plex Sans', system-ui, sans-serif" } as const
-const STRENGTH: Record<string, 'full' | 'half' | 'neutral'> = { strong: 'full', medium: 'full', mild: 'half', negligible: 'neutral' }
 
 export function Panel({ title, note, children }: { title: string; note?: ReactNode; children: ReactNode }) {
   return (
@@ -21,10 +21,32 @@ export function Panel({ title, note, children }: { title: string; note?: ReactNo
   )
 }
 
-function DirectionChip({ m }: { m: Pick<MacroLink, 'direction' | 'strength'> }) {
-  const tone = m.direction === 'bull' ? 'up' : m.direction === 'bear' ? 'down' : 'neutral'
-  const word = m.direction === 'bull' ? 'tailwind' : m.direction === 'bear' ? 'headwind' : 'neutral'
-  return <Chip tone={tone} strength={STRENGTH[m.strength] ?? 'half'}>{m.strength} {word}</Chip>
+function DirectionChip({ m }: { m: Pick<MacroLink, 'effect'> }) {
+  const w = m.effect
+  if (w == null) return <Chip tone="neutral" strength="neutral">no data</Chip>
+  const tone = w > 0 ? 'up' : w < 0 ? 'down' : 'neutral'
+  return <Chip tone={tone} strength={Math.abs(w) >= 2 ? 'full' : w ? 'half' : 'neutral'}>{weightLabel(w)}</Chip>
+}
+
+function MacroTotals({ s }: { s: MacroSummary }) {
+  const cell = (label: string, value: string, sub: string, tone?: 'up' | 'down') => (
+    <div>
+      <div className="an-micro">{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 600, color: tone ? `var(--${tone})` : 'var(--ink)' }}>{value}</div>
+      <div className="an-sub">{sub}</div>
+    </div>
+  )
+  const tone = verdictTone(s.verdict)
+  return (
+    <div style={{ display: 'flex', gap: 30, flexWrap: 'wrap', padding: '2px 0 12px' }}>
+      {cell('Tailwinds', signedInt(s.tailwind), `${s.tailwind_links} link${s.tailwind_links === 1 ? '' : 's'}`, s.tailwind ? 'up' : undefined)}
+      {cell('Headwinds', signedInt(s.headwind), `${s.headwind_links} link${s.headwind_links === 1 ? '' : 's'}`, s.headwind ? 'down' : undefined)}
+      {cell('Net', signedInt(s.net), s.verdict, tone === 'neutral' ? undefined : tone)}
+      <div className="an-sub" style={{ alignSelf: 'end', maxWidth: 260 }}>
+        Sensitivity × the factor's 1-month move: strong ±2 · mild ±1{s.neutral_links ? ` · ${s.neutral_links} neutral` : ''}{s.no_data_links ? ` · ${s.no_data_links} no data` : ''}. Net ≥3 is strong.
+      </div>
+    </div>
+  )
 }
 
 /* ---------------- sensitivities (macro links) ---------------- */
@@ -33,7 +55,7 @@ function MacroBlock({ m, name }: { m: MacroLink; name: string }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: '4px 12px', padding: '10px 0', borderTop: '1px solid var(--line)' }}>
       <span style={{ fontSize: 12.5 }}>
-        <b style={{ fontWeight: 600 }}>{name}</b> <span className="an-sub">{m.factor} · {m.channel} · {m.speed}</span>
+        <b style={{ fontWeight: 600 }}>{name}</b> <span className="an-sub">{m.channel} · {sensitivityText(m.sensitivity ?? 0, m.move)}</span>
       </span>
       <DirectionChip m={m} />
       {m.ref && <span style={{ ...sans, fontSize: 12, color: 'var(--ink2)', gridColumn: '1 / -1' }}>{m.ref}</span>}
@@ -46,8 +68,8 @@ export function Sensitivities({ view, factorNames }: { view: AnalysisView; facto
   const multiple = view.macro.filter((m) => m.channel === 'valuation')
   const name = (code: string) => factorNames[code] ?? code
   return (
-    <Panel title="Sensitivities" note="macro links from the analysis · % EPS impact not in v2 files">
-      {eps.length === 0 && multiple.length === 0 && <p className="an-sub">None in this analysis.</p>}
+    <Panel title="Sensitivities" note="the analysis's macro links against this month's factor moves">
+      {eps.length === 0 && multiple.length === 0 ? <p className="an-sub">None in this analysis.</p> : <MacroTotals s={view.macro_summary} />}
       {eps.map((m) => <MacroBlock key={m.factor + m.channel} m={m} name={name(m.factor)} />)}
       {multiple.length > 0 && (
         <div style={{ marginTop: 14 }}>

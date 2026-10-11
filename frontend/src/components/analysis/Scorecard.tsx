@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchScorecard, saveScorecard } from '../../lib/apiClient'
-import type { Catalyst, CatalystStatus, Dimension, ScorecardIn, ScorecardResponse } from '../../types/analysis'
+import { signedInt } from '../../lib/macro'
+import type { Catalyst, CatalystStatus, Dimension, MacroSummary, ScorecardIn, ScorecardResponse } from '../../types/analysis'
 
-const DIMS: [Dimension, string][] = [['growth', 'Growth'], ['value', 'Value'], ['income', 'Income']]
+const DIMS: [Dimension, string][] = [['growth', 'Growth'], ['value', 'Value'], ['income', 'Income'], ['macro', 'Macro']]
 const NEXT_STATUS: Record<CatalystStatus, CatalystStatus> = { open: 'hit', hit: 'missed', missed: 'open' }
 type Side = 'bull_catalysts' | 'bear_catalysts'
 
-// The user's card is never prefilled; scores start at 0 (unset) until clicked.
-const blank = (): ScorecardIn => ({ growth: 0, value: 0, income: 0, bull_catalysts: [], bear_catalysts: [], note: null })
+// The user's card is never prefilled; scores are null (unset) until clicked. 0 is a real score.
+const SCORES = [0, 1, 2, 3]
+const blank = (): ScorecardIn => ({ growth: null, value: null, income: null, macro: null, bull_catalysts: [], bear_catalysts: [], note: null, target_pe: null, target_pe_note: null })
 
 const today = () => new Date().toISOString().slice(0, 10)
 const fmtDate = (d: string) =>
   new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
-export function Scorecard({ ticker }: { ticker: string }) {
+export function Scorecard({ ticker, onTargetPe, macroSummary }: { ticker: string; onTargetPe?: (pe: number | null) => void; macroSummary?: MacroSummary }) {
   const [data, setData] = useState<ScorecardResponse | null>(null)
   const [card, setCard] = useState<ScorecardIn>(blank)
   const [dirty, setDirty] = useState(false)
@@ -21,17 +23,28 @@ export function Scorecard({ ticker }: { ticker: string }) {
   const [msg, setMsg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [peText, setPeText] = useState('')
 
-  const adopt = (res: ScorecardResponse) => {
+  const onTargetPeRef = useRef(onTargetPe)
+  useEffect(() => {
+    onTargetPeRef.current = onTargetPe
+  }, [onTargetPe])
+
+  const adopt = useCallback((res: ScorecardResponse) => {
     setData(res)
     const c = res.current
-    setCard(c ? { growth: c.growth, value: c.value, income: c.income, bull_catalysts: c.bull_catalysts, bear_catalysts: c.bear_catalysts, note: c.note } : blank())
+    setCard(c ? {
+      growth: c.growth, value: c.value, income: c.income, macro: c.macro, bull_catalysts: c.bull_catalysts, bear_catalysts: c.bear_catalysts,
+      note: c.note, target_pe: c.target_pe, target_pe_note: c.target_pe_note,
+    } : blank())
+    setPeText(c?.target_pe != null ? String(c.target_pe) : '')
     setDirty(false)
-  }
+    onTargetPeRef.current?.(c?.target_pe ?? null) // saved target only, so the chart doesn't move while typing
+  }, [])
 
   useEffect(() => {
     fetchScorecard(ticker).then(adopt).catch((e) => setError(e.message))
-  }, [ticker])
+  }, [ticker, adopt])
 
   const change = (next: ScorecardIn) => {
     setCard(next)
@@ -64,10 +77,10 @@ export function Scorecard({ ticker }: { ticker: string }) {
   }
 
   const sug = data.suggested
-  const complete = card.growth > 0 && card.value > 0 && card.income > 0
+  const complete = card.growth != null && card.value != null && card.income != null && card.macro != null
   const status =
     msg ??
-    (dirty ? 'Unsaved changes' : data.versions ? `${data.versions} saved version${data.versions === 1 ? '' : 's'} · dated catalysts show in upcoming events` : 'Not scored yet. Click a box to score 1–5.')
+    (dirty ? 'Unsaved changes' : data.versions ? `${data.versions} saved version${data.versions === 1 ? '' : 's'} · dated catalysts show in upcoming events` : 'Not scored yet. Click a box to score 0–3.')
 
   return (
     <section className="an-card">
@@ -78,24 +91,31 @@ export function Scorecard({ ticker }: { ticker: string }) {
 
       <div className="sc-dims">
         {DIMS.map(([k, label]) => {
-          const theirs = sug?.[k]?.score
-          const diff = card[k] && theirs ? Math.abs(card[k] - theirs) : 0
+          const mine = card[k]
+          const theirs = k === 'macro' ? null : sug?.[k]?.score
+          const diff = mine != null && theirs != null ? Math.abs(mine - theirs) : 0
           return (
             <div key={k} className={`sc-dim${diff >= 2 ? ' flag' : ''}`}>
               <span className="name">{label}</span>
               <div className="sc-pips" role="radiogroup" aria-label={label}>
-                {[1, 2, 3, 4, 5].map((n) => (
+                {SCORES.map((n) => (
                   <button
                     key={n}
-                    className={`sc-pip${n <= card[k] ? ' on' : ''}`}
+                    className={`sc-pip${mine != null && n <= mine ? ' on' : ''}`}
                     role="radio"
-                    aria-checked={n === card[k]}
-                    aria-label={`${label} ${n} of 5`}
+                    aria-checked={n === mine}
+                    aria-label={`${label} ${n} of 3`}
                     onClick={() => change({ ...card, [k]: n })}
-                  />
+                  >
+                    {n}
+                  </button>
                 ))}
               </div>
-              <span className="diff">{diff >= 2 ? `Claude ${theirs}` : ''}</span>
+              <span className="diff" style={k === 'macro' ? { color: 'var(--ink3)' } : undefined}>
+                {k === 'macro'
+                  ? macroSummary ? `net ${signedInt(macroSummary.net)}` : ''
+                  : diff >= 2 ? `Claude ${theirs}` : ''}
+              </span>
             </div>
           )
         })}
@@ -115,6 +135,36 @@ export function Scorecard({ ticker }: { ticker: string }) {
         ))}
       </div>
 
+      <div className="sc-target">
+        <div className="an-micro">Target PE</div>
+        <div className="sc-add">
+          <input
+            type="number"
+            min={0}
+            step={0.5}
+            value={peText}
+            placeholder="e.g. 22"
+            aria-label="Target PE"
+            onWheel={(e) => e.currentTarget.blur()}
+            onChange={(e) => {
+              setPeText(e.target.value)
+              const v = Number(e.target.value)
+              change({ ...card, target_pe: e.target.value === '' || !(v > 0) ? null : v })
+            }}
+            style={{ flex: '0 1 90px' }}
+          />
+          <span className="an-sub" style={{ alignSelf: 'center' }}>× EPS</span>
+        </div>
+        <textarea
+          className="sc-just"
+          rows={3}
+          value={card.target_pe_note ?? ''}
+          placeholder="Why this multiple? (peers, history, growth)"
+          aria-label="Target PE justification"
+          onChange={(e) => change({ ...card, target_pe_note: e.target.value || null })}
+        />
+      </div>
+
       {sug && (
         <div className="sc-disc">
           <button onClick={() => setClaudeOpen((o) => !o)} aria-expanded={claudeOpen}>
@@ -123,11 +173,11 @@ export function Scorecard({ ticker }: { ticker: string }) {
           </button>
           {claudeOpen && (
             <div className="sc-claude">
-              {DIMS.map(([k, label]) => (
+              {DIMS.filter(([k]) => k !== 'macro').map(([k, label]) => (
                 <div key={k} className="row">
                   <span>{label}</span>
-                  <b>{sug[k]?.score ?? '—'}</b>
-                  <span>{sug[k]?.ref}</span>
+                  <b title={sug[k as 'growth']?.score_1_5 != null ? `${sug[k as 'growth']?.score_1_5}/5 in the analysis` : undefined}>{sug[k as 'growth']?.score ?? '—'}</b>
+                  <span>{sug[k as 'growth']?.ref}</span>
                 </div>
               ))}
               {[...sug.bull_catalysts.map((c) => ['bull', c] as const), ...sug.bear_catalysts.map((c) => ['bear', c] as const)].map(

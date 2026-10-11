@@ -13,7 +13,7 @@ from fakes import FakeSupabase
 from test_model_v2 import _load_fixture, _model_block
 
 ME, OTHER = "user-1", "user-2"
-CARD = {"growth": 4, "value": 3, "income": 1,
+CARD = {"growth": 3, "value": 2, "income": 1, "macro": 2,
         "bull_catalysts": [{"text": "Q2 comps ≥ +6%", "date": "2026-08-05", "status": "open"}],
         "bear_catalysts": [], "note": None}
 
@@ -29,7 +29,8 @@ class TestScorecard(unittest.TestCase):
         res = scorecard.get_scorecard(self.db, ME, "BROS")
         self.assertIsNone(res["current"])
         self.assertEqual(res["versions"], 0)
-        self.assertEqual(res["suggested"]["growth"]["score"], 5)
+        self.assertEqual(res["suggested"]["growth"]["score"], 3)  # 5 on the analysis scale
+        self.assertEqual(res["suggested"]["growth"]["score_1_5"], 5)
         self.assertEqual(res["suggested"]["as_of"], "2026-07-28")
 
     def test_each_save_is_a_new_version(self):

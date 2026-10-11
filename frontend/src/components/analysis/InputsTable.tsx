@@ -1,13 +1,12 @@
 import type { ModelInputs } from '../../types/analysis'
 import { deltaRows, fmt, inputRows } from '../../lib/modelRows'
+import { sourceTag } from './Drivers'
 
 interface Props {
   inputs: ModelInputs
   edits: Record<string, number>
   onChange: (path: string, value: number, base: number) => void
 }
-
-const SRC_TAG: Record<string, string> = { guidance: 'G', filing: 'F', assumption: 'A' }
 
 function Cell({ path, base, step, source, note, edits, onChange }: {
   path: string
@@ -33,7 +32,7 @@ function Cell({ path, base, step, source, note, edits, onChange }: {
           if (!Number.isNaN(v)) onChange(path, v, base)
         }}
       />
-      <span className="src">{source ? SRC_TAG[source] ?? '' : ''}</span>
+      <span className={`src src-${sourceTag(source, note)?.tag ?? ''}`}>{sourceTag(source, note)?.tag ?? ''}</span>
       {edited && <span className="was">was {fmt(base, step >= 1 ? 0 : 1)}</span>}
     </span>
   )
@@ -84,7 +83,7 @@ export function InputsTable({ inputs, edits, onChange }: Props) {
       </div>
       <div className="an-legend">
         <span>amber = edited · was = base value</span>
-        <span>G guidance · F filing · A assumption (hover a cell for the source)</span>
+        <span>G guidance · F filing / reported · A assumption · E edited by you (hover a cell for the source)</span>
       </div>
     </>
   )

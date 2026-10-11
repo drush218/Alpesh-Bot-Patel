@@ -6,7 +6,7 @@ Two apps share this repo and the same Supabase project ("Stock Dashboard", ref `
 1. **Portfolio Terminal (v2, current)** — FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`). Six screens: Dashboard, Book, Analysis, Macro, Sizer, Settings. Built from `design_handoff_portfolio_terminal/` (design spec + prototype) and `claude-code-handoff/handoff/CLAUDE_CODE_PROMPT_model_v2.md` (stock-model v2 spec).
 2. **Streamlit app (legacy)** — `streamlit run app.py`. Still works; don't delete until v2 has fully replaced it.
 
-As of Oct 2026 the v2 work lives on branch `claude/status-check-757914`, not yet merged to `main`.
+v2 was merged to `main` and deployed (Render, one Docker service) in Oct 2026.
 
 ---
 
@@ -33,11 +33,23 @@ As of Oct 2026 the v2 work lives on branch `claude/status-check-757914`, not yet
 
 **Frontend:** plain CSS tokens (`styles/tokens.css`), mostly inline styles plus `styles/book.css` / `styles/analysis.css`. Screen switching in `App.tsx`; nav in `components/layout/Header.tsx`. Approved Analysis workspace preview: https://claude.ai/artifact/KhSvpd8SiwW8jQcPvBwDhQ
 
-**Adding analyses:** stock-analysis skill → `.md` with a ```json stock-model block → save under `analyses/` → parse with the real parser and show the user the preview → on their OK, write through the same ingest path (Settings upload, or connector SQL generated from `confirm_ingest`). Never hand-write analysis rows. Confirm before every Supabase write. v2 files carry no base-year actuals, risks or peers.
+**Adding analyses:** stock-analysis skill → `.md` with a ```json stock-model block → save under `analyses/` → parse with the real parser and show the user the preview → on their OK, write through the same ingest path (Settings upload, or connector SQL generated from `confirm_ingest`). Never hand-write analysis rows. Confirm before every Supabase write. v2 files carry no base-year actuals, risks or peers. Connector-SQL ingest pitfall: the SQL transport decodes `\uXXXX` escapes inside the JSON block, so re-escape non-ASCII chars in the block before hashing or `content_hash` won't match the file (done this way on 11 Oct 2026).
 
 **Supabase migrations:** in `supabase/migrations/`; show the user any migration before applying it.
 
-**Open items:** money-weighted CAGR on the Dashboard (current CAGR treats all deposits as day one — inherited from Streamlit); ingest the user's analyses (11 of 12 holdings unmodelled); merge to `main`.
+**Analyses on file (Oct 2026):** BROS, CAML, DECK, GRG, MELI, ONON, PYPL, SMCI, UBER (files in `analyses/`, ingested 11 Oct 2026). Not modelled: MSFT; BGEO and UKW parked — they need a different template (bank / investment trust). Six proposed macro factors await approval in Settings.
+
+**Open items:** money-weighted CAGR on the Dashboard (current CAGR treats all deposits as day one — inherited from Streamlit); FX for ONON (CHF EPS → USD) and CAML (USD EPS → GBp) — `fx_rates` only holds USD→GBP, check live PE on both.
+
+**Next phase:** the user is reviewing the app screen by screen and will streamline it (cut what isn't needed). Make one focused change per comment.
+
+**Cleanup pending — do AFTER the streamlining tweaks** (cuts will remove code, so don't tidy first):
+- Delete the legacy Streamlit app (`app.py`, `pages/`, `auth.py`, `charts.py`) once v2 fully replaces it
+- Remove stale branches/worktrees (`claude/platform-build-handoff-370ffa`, `claude/portfolio-terminal-v2-build-4a07bd`, `claude/status-check-757914`), `claude-code-handoff/`, `design_handoff_portfolio_terminal/`
+- `ABP.ipynb` is tracked despite `*.ipynb` in `.gitignore` (no secrets in it) — untrack or delete
+- Drop the v1 path in `markdown_to_json.py` (only v2 is stored) and the unused `v_analysis_staleness` view
+- Reconcile the two model engines: skill `model.py` vs `backend/app/services/stock_model.py` (they have diverged)
+- Remove services/tables/tests for any features cut during streamlining
 
 ---
 

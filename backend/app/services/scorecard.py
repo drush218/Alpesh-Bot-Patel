@@ -9,7 +9,9 @@ from supabase import Client
 
 from app.services.workspace import current_analysis
 
-DIMENSIONS = ("growth", "value", "income")
+DIMENSIONS = ("growth", "value", "income", "macro")
+# User cards score 0–3; analyses still suggest 1–5, so suggestions are mapped for display.
+SUGGESTED_TO_CARD = {1: 0, 2: 1, 3: 2, 4: 3, 5: 3}
 STATUSES = ("open", "hit", "missed")
 
 
@@ -26,8 +28,17 @@ def _card(row: dict) -> dict:
         "bull_catalysts": row.get("bull_catalysts") or [],
         "bear_catalysts": row.get("bear_catalysts") or [],
         "note": row.get("note"),
+        "target_pe": float(row["target_pe"]) if row.get("target_pe") is not None else None,
+        "target_pe_note": row.get("target_pe_note"),
         "created_at": row.get("created_at"),
     }
+
+
+def _rescaled(dim: dict | None) -> dict | None:
+    if not dim:
+        return None
+    raw = dim.get("score")
+    return {**dim, "score": SUGGESTED_TO_CARD.get(raw), "score_1_5": raw}
 
 
 def _suggested(inputs: dict) -> dict | None:
@@ -36,7 +47,7 @@ def _suggested(inputs: dict) -> dict | None:
         return None
     return {
         "as_of": inputs.get("meta", {}).get("data_as_of"),
-        **{d: s.get(d) for d in DIMENSIONS},   # {"score", "ref"}
+        **{d: _rescaled(s.get(d)) for d in DIMENSIONS},   # {"score" (0–3), "score_1_5", "ref"}
         "bull_catalysts": s.get("bull_catalysts") or [],
         "bear_catalysts": s.get("bear_catalysts") or [],
     }
@@ -53,7 +64,7 @@ def get_scorecard(db: Client, user_id: str, ticker: str) -> dict:
 
 
 def save_scorecard(db: Client, user_id: str, ticker: str, card: dict) -> dict:
-    """Write a new version. card: growth/value/income (1-5), bull/bear_catalysts, note."""
+    """Write a new version. card: growth/value/income/macro (0-3), bull/bear_catalysts, note."""
     base = current_analysis(db, ticker)
     db.table("scorecards").insert({
         "user_id": user_id,
@@ -62,5 +73,7 @@ def save_scorecard(db: Client, user_id: str, ticker: str, card: dict) -> dict:
         "bull_catalysts": card.get("bull_catalysts", []),
         "bear_catalysts": card.get("bear_catalysts", []),
         "note": card.get("note"),
+        "target_pe": card.get("target_pe"),
+        "target_pe_note": card.get("target_pe_note"),
     }).execute()
     return get_scorecard(db, user_id, ticker)

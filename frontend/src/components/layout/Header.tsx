@@ -4,7 +4,7 @@ import { NavButton } from './NavButton'
 const NAV_ITEMS = [
   { key: 'dashboard', label: 'Dashboard' },
   { key: 'book', label: 'Book' },
-  { key: 'analysis', label: 'Analysis' },
+  { key: 'analysis', label: 'Analyses' },
   { key: 'macro', label: 'Macro' },
   { key: 'sizer', label: 'Sizer' },
   { key: 'settings', label: 'Settings' },
@@ -22,7 +22,7 @@ function formatTimestamp(date: Date): string {
   return `${datePart} · ${timePart}${tz ? ' ' + tz : ''}`
 }
 
-export function Header({ screen, onNavigate, analysisTicker }: { screen: Screen; onNavigate: (s: Screen) => void; analysisTicker: string | null }) {
+export function Header({ screen, onNavigate }: { screen: Screen; onNavigate: (s: Screen) => void }) {
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -53,9 +53,9 @@ export function Header({ screen, onNavigate, analysisTicker }: { screen: Screen;
         {NAV_ITEMS.map((item) => (
           <NavButton
             key={item.key}
-            label={item.key === 'analysis' && analysisTicker ? analysisTicker : item.label}
+            label={item.label}
             active={item.key === screen}
-            disabled={!BUILT.includes(item.key) || (item.key === 'analysis' && !analysisTicker)}
+            disabled={!BUILT.includes(item.key)}
             onClick={() => onNavigate(item.key as Screen)}
           />
         ))}

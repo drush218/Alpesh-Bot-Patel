@@ -1,23 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchAnalysis } from '../../lib/apiClient'
 import { formatGbp } from '../../lib/format'
-import { currencySymbol, signed } from '../../lib/modelRows'
+import { currencySymbol, peAt, signed } from '../../lib/modelRows'
 import type { AnalysisView, WorkspaceResult } from '../../types/analysis'
 import { DataSource, Panel, PositionPanel, Sensitivities, Thesis, Upcoming, WhatChanged } from './InfoPanels'
 import { ScenarioWorkspace } from './ScenarioWorkspace'
 import { Scorecard } from './Scorecard'
-import { BauBridge, LiveValuation, MULTIPLES, MultipleControl, ScenarioBandChart } from './ValuationPanels'
-
-const MULT_KEY = 'pt.referenceMultiple'
-
-function loadMultiple(): number {
-  try {
-    const v = Number(localStorage.getItem(MULT_KEY))
-    return (MULTIPLES as readonly number[]).includes(v) ? v : 30
-  } catch {
-    return 30
-  }
-}
+import { PeControl, UpsideChart } from './ValuationPanels'
+import { IncomePanel } from './IncomePanel'
 
 const fmtDate = (iso: string | null | undefined) =>
   iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
@@ -31,25 +21,19 @@ function Metric({ label, value, tone }: { label: string; value: string; tone?: '
   )
 }
 
-export function AnalysisScreen({ ticker, onSize }: { ticker: string; onSize: (t: string) => void }) {
+export function AnalysisScreen({ ticker, onSize, onBack }: { ticker: string; onSize: (t: string) => void; onBack: () => void }) {
   const [view, setView] = useState<AnalysisView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [base, setBase] = useState<WorkspaceResult | null>(null)
-  const [multiple, setMultipleState] = useState(loadMultiple)
+  const [chosenPe, setChosenPe] = useState<number | null>(null) // null = default (target, else current)
+  const [targetPe, setTargetPe] = useState<number | null>(null)
   const onBaseLoaded = useCallback((r: WorkspaceResult) => setBase(r), [])
 
-  const setMultiple = (m: number) => {
-    setMultipleState(m)
-    try {
-      localStorage.setItem(MULT_KEY, String(m))
-    } catch {
-      /* per-browser convenience only */
-    }
-  }
+  const [version, setVersion] = useState(0) // bumped when the base analysis is re-saved, so everything reloads
 
   useEffect(() => {
     fetchAnalysis(ticker).then(setView).catch((e) => setError(e.message))
-  }, [ticker])
+  }, [ticker, version])
 
   const meta = view?.meta
   const price = view?.price ?? null
@@ -58,9 +42,14 @@ export function AnalysisScreen({ ticker, onSize }: { ticker: string; onSize: (t:
   const sinceStrike = price && ref ? (price.close / ref.value - 1) * 100 : null
   const pos = view?.position
   const years = base?.base_inputs.meta.forecast_years ?? []
+  const firstEps = base?.base_outputs.scenarios.bau[0]?.eps
+  const currentPe = firstEps != null ? peAt(firstEps, price) : null
+  const defaultPe = targetPe ?? currentPe
+  const multiple = chosenPe ?? defaultPe ?? 25
 
   return (
     <main style={mainStyle}>
+      <button className="an-btn" onClick={onBack} style={{ marginBottom: 14 }}>← All analyses</button>
       {error && <p style={{ color: 'var(--down)' }}>{error}</p>}
 
       {view && (view.stale.is_stale || view.warnings.length > 0) && (
@@ -108,25 +97,25 @@ export function AnalysisScreen({ ticker, onSize }: { ticker: string; onSize: (t:
 
       <div className="an-grid">
         <div style={{ minWidth: 0, display: 'grid', gap: 14 }}>
+          <ScenarioWorkspace key={version} ticker={ticker} onBaseLoaded={onBaseLoaded} onBaseSaved={() => setVersion((v) => v + 1)} />
           {base && (
-            <>
-              <Panel title="Price vs scenario band" note={<MultipleControl value={multiple} onChange={setMultiple} />}>
-                <ScenarioBandChart outputs={base.base_outputs} years={years} price={price} epsCcy={meta?.reporting_currency} multiple={multiple} />
-                <p className="an-sub" style={{ margin: '6px 0 0' }}>
-                  Implied price = EPS × {multiple}× for LOW, BAU and HIGH, from the base analysis.
-                </p>
-              </Panel>
-              <Panel title="Live valuation" note={`reference multiple ${multiple}×`}>
-                <LiveValuation outputs={base.base_outputs} years={years} price={price} epsCcy={meta?.reporting_currency} multiple={multiple} />
-              </Panel>
-            </>
+            <Panel title="Income" note="dividend you enter · buybacks from the forecast share count">
+              <IncomePanel ticker={ticker} outputs={base.base_outputs} years={years} baseShares={base.actual.shares} price={price} />
+            </Panel>
           )}
-          <ScenarioWorkspace key={ticker} ticker={ticker} onBaseLoaded={onBaseLoaded} />
           {view && <Sensitivities view={view} factorNames={view.factor_names} />}
-          {base && <BauBridge outputs={base.base_outputs} years={years} epsCcy={meta?.reporting_currency} />}
+          {base && (
+            <Panel title="Implied share price" note={<PeControl value={multiple} current={defaultPe} onChange={setChosenPe} />}>
+              <UpsideChart outputs={base.base_outputs} years={years} price={price} multiple={multiple} />
+              <p className="an-sub" style={{ margin: '6px 0 0' }}>
+                Price at {multiple.toFixed(1)}× BAU EPS; callouts are the change from today's {psym}{price ? price.close.toFixed(2) : '—'}.
+                {' '}Defaults to {targetPe != null ? 'your target PE from the scorecard' : `the current ${years[0] ?? ''} PE (set a target PE in the scorecard to use that instead)`}.
+              </p>
+            </Panel>
+          )}
         </div>
         <aside>
-          <Scorecard key={ticker} ticker={ticker} />
+          <Scorecard key={ticker} ticker={ticker} onTargetPe={setTargetPe} macroSummary={view?.macro_summary} />
           {view && (
             <>
               <Thesis view={view} />

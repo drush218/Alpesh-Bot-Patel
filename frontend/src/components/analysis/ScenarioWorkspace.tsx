@@ -4,14 +4,17 @@ import {
   listScenarios,
   loadScenario,
   previewWorkspace,
+  saveAsBase,
   saveScenario,
 } from '../../lib/apiClient'
 import { currencySymbol } from '../../lib/modelRows'
 import type { Override, ScenarioSummary, WorkspaceResult } from '../../types/analysis'
+import { Drivers } from './Drivers'
 import { InputsTable } from './InputsTable'
+import { PeChart } from './ValuationPanels'
 import { EpsBand, OutputTable } from './OutputTable'
 
-type Form = null | 'save' | 'saveas' | 'reset' | 'delete' | { done: string }
+type Form = null | 'save' | 'saveas' | 'reset' | 'delete' | 'base' | { done: string }
 
 const toList = (edits: Record<string, number>): Override[] => Object.entries(edits).map(([path, value]) => ({ path, value }))
 const toMap = (list: Override[]) => Object.fromEntries(list.map((o) => [o.path, o.value]))
@@ -23,13 +26,18 @@ function formatPriceTime(iso: string) {
   return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`
 }
 
-export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; onBaseLoaded?: (r: WorkspaceResult) => void }) {
+export function ScenarioWorkspace({ ticker, onBaseLoaded, onBaseSaved }: {
+  ticker: string
+  onBaseLoaded?: (r: WorkspaceResult) => void
+  onBaseSaved?: () => void
+}) {
   const [saved, setSaved] = useState<ScenarioSummary[]>([])
   const [selected, setSelected] = useState<number | null>(null)
   const [loaded, setLoaded] = useState<WorkspaceResult | null>(null) // result for the selected scenario / base, unedited
   const [result, setResult] = useState<WorkspaceResult | null>(null) // what's shown (includes unsaved edits)
   const [edits, setEdits] = useState<Record<string, number>>({})
   const [editing, setEditing] = useState(false)
+  const [editingBase, setEditingBase] = useState(false) // correcting BAU itself, not a scenario
   const [compare, setCompare] = useState(false)
   const [form, setForm] = useState<Form>(null)
   const [error, setError] = useState<string | null>(null)
@@ -105,13 +113,36 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
 
   const startEditing = () => {
     setEditing(true)
+    setEditingBase(false)
     setForm(null)
     if (selected == null) setCompare(true)
+  }
+
+  const startEditingBase = () => {
+    setEditing(true)
+    setEditingBase(true)
+    setForm(null)
+    setCompare(true)
+  }
+
+  const submitBase = async () => {
+    setBusy(true)
+    try {
+      await saveAsBase(ticker, toList(edits))
+      setEditing(false)
+      setEditingBase(false)
+      onBaseSaved?.() // the whole screen reloads onto the new analysis
+    } catch (e) {
+      fail(e)
+    } finally {
+      setBusy(false)
+    }
   }
 
   const discard = () => {
     if (loaded) show(loaded, loadedEdits)
     setEditing(false)
+    setEditingBase(false)
     setForm(null)
   }
 
@@ -155,7 +186,7 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
   if (!result) {
     return (
       <section className="an-card">
-        <h2>Scenario workspace</h2>
+        <h2>Income statement (forecast)</h2>
         <p className="an-sub">{error ?? 'Loading the model…'}</p>
       </section>
     )
@@ -169,9 +200,14 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
     <section className="an-card">
       <div className="an-head">
         <div style={{ minWidth: 0 }}>
-          <h2>Scenario workspace</h2>
+          <h2>Income statement (forecast)</h2>
           <div className="an-sub">
-            {editing ? (
+            {editingBase ? (
+              <>
+                Editing the <b>base analysis</b> · {n} input{n === 1 ? '' : 's'} changed
+                {n > 0 && <> · <span className="an-dirty">unsaved</span></>}
+              </>
+            ) : editing ? (
               <>
                 Editing <b>{current ? current.name : 'new scenario'}</b> · {n} input{n === 1 ? '' : 's'} changed from base
                 {dirty && <> · <span className="an-dirty">unsaved</span></>}
@@ -184,7 +220,12 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
           </div>
         </div>
         <div className="an-tools">
-          {editing ? (
+          {editingBase ? (
+            <>
+              <button className="an-btn primary" disabled={n === 0 || busy} onClick={() => setForm('base')}>Save as base…</button>
+              <button className="an-btn" onClick={discard}>{n ? 'Discard changes' : 'Done'}</button>
+            </>
+          ) : editing ? (
             <>
               <button className="an-btn primary" disabled={n === 0 || busy} onClick={() => setForm('save')}>
                 {current ? 'Save' : 'Save as…'}
@@ -219,7 +260,10 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
                   <button className="an-btn danger" onClick={() => setForm('delete')}>Delete</button>
                 </>
               ) : (
-                <button className="an-btn primary" onClick={startEditing}>New scenario</button>
+                <>
+                  <button className="an-btn" onClick={startEditingBase} title="Correct the analysis's own BAU inputs">Edit base</button>
+                  <button className="an-btn primary" onClick={startEditing} title="A deviation from BAU, saved separately">New scenario</button>
+                </>
               )}
             </>
           )}
@@ -267,6 +311,7 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
         onSave={submitSave}
         onReset={resetToBase}
         onDelete={confirmDelete}
+        onSaveBase={submitBase}
       />
 
       <div className="an-head" style={{ margin: '4px 0 6px' }}>
@@ -309,16 +354,19 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
 
       <OutputTable result={result} compare={comparing} scenarioLabel={editing && dirty ? 'now' : current ? 'scen.' : 'now'} />
       <EpsBand result={result} />
-      <p className="an-sub" style={{ marginTop: 6 }}>
-        {result.actual.year}A shows what the analysis carries (revenue, shares). Costs, net income and EPS actuals come once the
-        stock-analysis skill adds them.
-      </p>
+
+      <div className="an-micro" style={{ margin: '14px 0 2px' }}>PE at current price{comparing ? ' · edited' : ''}</div>
+      <PeChart outputs={result.outputs ?? result.base_outputs} years={result.base_inputs.meta.forecast_years} price={price} />
+
+      {!editing && <Drivers inputs={result.base_inputs} />}
 
       {editing && (
         <div className="an-edit">
           <div className="an-head" style={{ marginBottom: 8 }}>
-            <h2 style={{ fontSize: 14 }}>Inputs</h2>
-            <span className="an-sub">Edits update the table above as you type</span>
+            <h2 style={{ fontSize: 14 }}>{editingBase ? 'Base inputs' : 'Inputs'}</h2>
+            <span className="an-sub">
+              {editingBase ? 'Fixes to the analysis itself; saving stores a new version' : 'Edits update the table above as you type'}
+            </span>
           </div>
           <InputsTable key={tableKey} inputs={result.base_inputs} edits={edits} onChange={onEdit} />
         </div>
@@ -327,7 +375,7 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded }: { ticker: string; on
   )
 }
 
-function FormRow({ form, currentName, currentNote, editCount, busy, onCancel, onSave, onReset, onDelete }: {
+function FormRow({ form, currentName, currentNote, editCount, busy, onCancel, onSave, onReset, onDelete, onSaveBase }: {
   form: Form
   currentName?: string
   currentNote?: string | null
@@ -337,8 +385,21 @@ function FormRow({ form, currentName, currentNote, editCount, busy, onCancel, on
   onSave: (name: string, note: string) => void
   onReset: () => void
   onDelete: () => void
+  onSaveBase: () => void
 }) {
   if (!form) return null
+  if (form === 'base') {
+    return (
+      <div className="an-form">
+        <span className="msg">
+          Store {editCount} edit{editCount === 1 ? '' : 's'} as the new base analysis? The current version is kept as history,
+          edited values are tagged as yours, and saved scenarios rebase onto the new base.
+        </span>
+        <button className="an-btn primary" onClick={onSaveBase} disabled={busy}>Save as base</button>
+        <button className="an-btn" onClick={onCancel}>Cancel</button>
+      </div>
+    )
+  }
   if (typeof form === 'object') {
     return <div className="an-form done"><span className="msg">{form.done}</span></div>
   }

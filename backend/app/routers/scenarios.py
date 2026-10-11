@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.deps import CurrentUser, get_current_user
-from app.services import analysis_view, scenarios, workspace
+from app.services import analyses_list, analysis_view, base_edit, ingest, scenarios, workspace
 from app.services.analysis_lookup import modelled_tickers
 
 router = APIRouter()
@@ -33,6 +33,12 @@ def list_analysed(user: CurrentUser = Depends(get_current_user)) -> list[str]:
     return sorted(modelled_tickers(user.db))
 
 
+@router.get("/analyses")
+def get_analyses(user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Every current analysis side by side, held vs watch, for the Analyses screen."""
+    return analyses_list.analyses_list(user.db, user.id)
+
+
 @router.get("/analysis/{ticker}")
 def get_analysis(ticker: str, user: CurrentUser = Depends(get_current_user)) -> dict:
     """Status, position, macro links, levers, calendar and what changed for the current analysis."""
@@ -49,6 +55,17 @@ def preview(ticker: str, body: PreviewRequest, user: CurrentUser = Depends(get_c
         return workspace.preview(user.db, ticker, [e.model_dump() for e in body.overrides])
     except workspace.NotFound as e:
         _not_found(e)
+
+
+@router.post("/analysis/{ticker}/base")
+def save_as_base(ticker: str, body: PreviewRequest, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Store the edited inputs as a new version of the analysis (through the ingest path). The old one is kept."""
+    try:
+        return base_edit.save_as_base(user.db, ticker, [o.model_dump() for o in body.overrides])
+    except workspace.NotFound as e:
+        _not_found(e)
+    except (base_edit.BaseEditError, ingest.IngestError) as e:
+        raise HTTPException(status_code=400, detail="; ".join(e.errors))
 
 
 @router.get("/analysis/{ticker}/scenarios")

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { listAnalysed, refreshMacro, refreshMarket } from './lib/apiClient'
+import { refreshMacro, refreshMarket } from './lib/apiClient'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { LoginScreen } from './components/auth/LoginScreen'
 import { Header, type Screen } from './components/layout/Header'
 import { BookScreen } from './components/book/BookScreen'
 import { DashboardScreen } from './components/dashboard/DashboardScreen'
 import { AnalysisScreen } from './components/analysis/AnalysisScreen'
+import { AnalysesScreen } from './components/analysis/AnalysesScreen'
 import { SettingsScreen } from './components/settings/SettingsScreen'
 import { MacroScreen } from './components/macro/MacroScreen'
 import { SizerScreen } from './components/sizer/SizerScreen'
@@ -21,6 +22,10 @@ function AppShell() {
     setSizerTicker(t)
     setScreen('sizer')
   }
+  const navigate = (s: Screen) => {
+    if (s === 'analysis') setAnalysisTicker(null) // the nav tab always lands on the list
+    setScreen(s)
+  }
   const openAnalysis = (t: string) => {
     setAnalysisTicker(t)
     setScreen('analysis')
@@ -30,9 +35,6 @@ function AppShell() {
     if (!userId) return
     refreshMarket().catch((e) => console.warn('Market refresh failed:', e.message))
     refreshMacro().catch((e) => console.warn('Macro refresh failed:', e.message))
-    listAnalysed()
-      .then((tickers) => setAnalysisTicker((t) => t ?? tickers[0] ?? null))
-      .catch((e) => console.warn('Analysis list failed:', e.message))
   }, [userId])
 
   if (loading) return null
@@ -40,12 +42,15 @@ function AppShell() {
 
   return (
     <>
-      <Header screen={screen} onNavigate={setScreen} analysisTicker={analysisTicker} />
-      {screen === 'dashboard' && <DashboardScreen onNavigate={setScreen} onOpenAnalysis={openAnalysis} />}
+      <Header screen={screen} onNavigate={navigate} />
+      {screen === 'dashboard' && <DashboardScreen onNavigate={navigate} onOpenAnalysis={openAnalysis} />}
       {screen === 'book' && (
         <BookScreen onOpenAnalysis={openAnalysis} />
       )}
-      {screen === 'analysis' && analysisTicker && <AnalysisScreen ticker={analysisTicker} onSize={openSizer} />}
+      {screen === 'analysis' && !analysisTicker && <AnalysesScreen onOpen={openAnalysis} />}
+      {screen === 'analysis' && analysisTicker && (
+        <AnalysisScreen key={analysisTicker} ticker={analysisTicker} onSize={openSizer} onBack={() => setAnalysisTicker(null)} />
+      )}
       {screen === 'macro' && <MacroScreen />}
       {screen === 'sizer' && <SizerScreen key={sizerTicker ?? ''} initialTicker={sizerTicker} />}
       {screen === 'settings' && <SettingsScreen onOpenAnalysis={openAnalysis} />}

@@ -10,6 +10,8 @@ from supabase import Client
 
 from app.crypto import get_t212_credentials
 from app.services import t212_client
+from app.services.macro_data import factor_sources
+from app.services.macro_view import MOVE, verdict
 from app.services.market_data import parse_t212_ticker
 from app.services.workspace import NotFound, latest_price
 
@@ -24,6 +26,54 @@ def staleness(model: dict, data_as_of: str | None, today: str | None = None) -> 
     since = data_as_of or "0000-00-00"
     passed = [e["date"] for e in model.get("calendar", []) if e.get("type") == "earnings" and since < e.get("date", "") < today]
     return {"is_stale": bool(passed), "last_earnings": max(passed) if passed else None}
+
+
+# A link's direction is a sensitivity: bull = the stock gains when the factor RISES. Whether it's a
+# tailwind or headwind today depends on the factor's latest 1-month move, as on the Macro screen.
+# Five labels: strong/mild headwind, neutral, mild/strong tailwind. "medium" counts as strong: the
+# skill only uses it for a deliberate step up from mild.
+LINK_WEIGHT = {"negligible": 0, "mild": 1, "medium": 2, "strong": 2}
+LINK_SIGN = {"bull": 1, "bear": -1, "neutral": 0}
+
+
+def link_weight(link: dict) -> int:
+    """-2..+2 sensitivity to the factor rising."""
+    return LINK_SIGN.get(link.get("direction"), 0) * LINK_WEIGHT.get(link.get("strength"), 0)
+
+
+def latest_moves(db: Client, codes: set[str]) -> dict[str, str | None]:
+    """Latest 1-month move (up/down/flat) per approved factor; pending factors and ones without data map to None."""
+    approved = {f["code"] for f in factor_sources(db)}
+    moves: dict[str, str | None] = {}
+    for code in codes:
+        rows = (db.table("macro_factor_moves").select("move").eq("factor_code", code)
+                .order("as_of", desc=True).limit(1).execute().data) if code in approved else []
+        moves[code] = rows[0]["move"] if rows else None
+    return moves
+
+
+def score_links(links: list[dict], moves: dict[str, str | None]) -> list[dict]:
+    out = []
+    for m in links:
+        move = moves.get(m.get("factor"))
+        sens = link_weight(m)
+        out.append({**m, "sensitivity": sens, "move": move, "effect": sens * MOVE[move] if move else None})
+    return out
+
+
+def macro_summary(scored: list[dict]) -> dict:
+    """Today's tailwinds and headwinds added up; net banded like the Macro screen (|net| >= 3 strong, >= 1 mild)."""
+    effects = [m["effect"] for m in scored if m["effect"] is not None]
+    tail = [e for e in effects if e > 0]
+    head = [e for e in effects if e < 0]
+    net = sum(effects)
+    return {
+        "tailwind": sum(tail), "tailwind_links": len(tail),
+        "headwind": sum(head), "headwind_links": len(head),
+        "neutral_links": len(effects) - len(tail) - len(head),
+        "no_data_links": len(scored) - len(effects),
+        "net": net, "verdict": verdict(net),
+    }
 
 
 def _bau_by_year(model: dict) -> dict:
@@ -92,6 +142,9 @@ def analysis_view(db: Client, user_id: str, ticker: str) -> dict:
     for r in db.table("macro_factor_proposals").select("code, name, status").execute().data:
         names.setdefault(r["code"], f"{r['name'] or r['code']}{' (pending)' if r['status'] == 'pending' else ''}")
 
+    links = model.get("macro", [])
+    scored = score_links(links, latest_moves(db, {m["factor"] for m in links}))
+
     return {
         "ticker": ticker,
         "factor_names": names,
@@ -100,7 +153,8 @@ def analysis_view(db: Client, user_id: str, ticker: str) -> dict:
         "data_as_of": current["data_as_of"],
         "meta": model.get("meta", {}),
         "bottom_line": model.get("bottom_line"),
-        "macro": model.get("macro", []),
+        "macro": scored,
+        "macro_summary": macro_summary(scored),
         "levers": model.get("levers", []),
         "calendar": calendar,
         "warnings": current.get("warnings") or [],
