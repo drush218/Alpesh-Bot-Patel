@@ -17,6 +17,11 @@ class PreviewRequest(BaseModel):
     overrides: list[Edit] = []
 
 
+class ActualsRequest(BaseModel):
+    cells: dict[str, dict]
+    dry_run: bool = False
+
+
 class SaveRequest(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     note: str | None = None
@@ -62,6 +67,17 @@ def save_as_base(ticker: str, body: PreviewRequest, user: CurrentUser = Depends(
     """Store the edited inputs as a new version of the analysis (through the ingest path). The old one is kept."""
     try:
         return base_edit.save_as_base(user.db, ticker, [o.model_dump() for o in body.overrides])
+    except workspace.NotFound as e:
+        _not_found(e)
+    except (base_edit.BaseEditError, ingest.IngestError) as e:
+        raise HTTPException(status_code=400, detail="; ".join(e.errors))
+
+
+@router.post("/analysis/{ticker}/actuals")
+def save_actuals(ticker: str, body: ActualsRequest, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Set the base-year actuals with their sources, stored as a new analysis version (dry_run: compute only)."""
+    try:
+        return base_edit.save_actuals(user.db, ticker, body.cells, body.dry_run)
     except workspace.NotFound as e:
         _not_found(e)
     except (base_edit.BaseEditError, ingest.IngestError) as e:

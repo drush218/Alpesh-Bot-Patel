@@ -13,7 +13,7 @@ from datetime import date
 
 from supabase import Client
 
-from app.services import ingest, scenarios
+from app.services import actuals, ingest, scenarios
 from app.services.workspace import NotFound, _inputs_of, _run
 
 _BLOCK_RE = re.compile(r"(```json stock-model\s*\n)(.*?)(\n```)", re.S)
@@ -38,10 +38,8 @@ def _tag(inputs: dict, path: str, old, new, today: str) -> None:
     container["ref"] = f"Edited in Portfolio Terminal {today}: {old} → {new}" + (f" (was {was})" if was else "")
 
 
-def save_as_base(db: Client, ticker: str, overrides: list[dict]) -> dict:
-    ticker = ticker.upper()
-    if not overrides:
-        raise BaseEditError(["No edits to save."])
+
+def _current(db: Client, ticker: str) -> dict:
     inst = db.table("instruments").select("id").eq("ticker", ticker).execute().data
     if not inst:
         raise NotFound(f"No instrument {ticker}")
@@ -50,9 +48,35 @@ def save_as_base(db: Client, ticker: str, overrides: list[dict]) -> dict:
     if not rows:
         raise NotFound(f"No current analysis for {ticker}")
     current = rows[0]
-    md = current.get("raw_markdown") or ""
-    if not _BLOCK_RE.search(md):
+    if not _BLOCK_RE.search(current.get("raw_markdown") or ""):
         raise BaseEditError(["The stored analysis has no json stock-model block to edit."])
+    return current
+
+
+def _store(db: Client, ticker: str, current: dict, inputs: dict, changes: list[str], today: str,
+           dry_run: bool = False) -> dict:
+    """Rerun the engine, write the json block back into the stored markdown, store it as a new version."""
+    model, errors, _ = _run(actuals.strip_empty(inputs))
+    if errors:
+        raise BaseEditError(errors)
+    if dry_run:
+        return {"actual": actuals.compute(model), "changes": changes}
+
+    block = json.dumps(model, indent=1, ensure_ascii=False)
+    note = (f"> **Base edited in Portfolio Terminal on {today}** (replaces analysis #{current['id']}): "
+            + "; ".join(changes) + ". The json block is the source of truth; tables above may show the earlier numbers.\n\n")
+    new_md = note + _BLOCK_RE.sub(lambda m: m.group(1) + block + m.group(3), current["raw_markdown"], count=1)
+
+    filename = f"{ticker}_{current.get('data_as_of') or today}_edited_{today}.md"
+    stored = ingest.store(db, new_md, filename)
+    return {**stored, "changes": changes}
+
+
+def save_as_base(db: Client, ticker: str, overrides: list[dict]) -> dict:
+    ticker = ticker.upper()
+    if not overrides:
+        raise BaseEditError(["No edits to save."])
+    current = _current(db, ticker)
 
     today = date.today().isoformat()
     base_inputs = _inputs_of(current["model"])
@@ -69,16 +93,24 @@ def save_as_base(db: Client, ticker: str, overrides: list[dict]) -> dict:
         changes.append(f"{o['path']}: {old} → {o['value']}")
     if not changes:
         raise BaseEditError(["Every edit matches the current base."])
+    return _store(db, ticker, current, inputs, changes, today)
 
-    model, errors, _ = _run(inputs)
-    if errors:
-        raise BaseEditError(errors)
 
-    block = json.dumps(model, indent=1, ensure_ascii=False)
-    note = (f"> **Base edited in Portfolio Terminal on {today}** (replaces analysis #{current['id']}): "
-            + "; ".join(changes) + ". The json block is the source of truth; tables above may show the earlier numbers.\n\n")
-    new_md = note + _BLOCK_RE.sub(lambda m: m.group(1) + block + m.group(3), md, count=1)
-
-    filename = f"{ticker}_{current.get('data_as_of') or today}_edited_{today}.md"
-    stored = ingest.store(db, new_md, filename)
-    return {**stored, "changes": changes}
+def save_actuals(db: Client, ticker: str, cells: dict, dry_run: bool = False) -> dict:
+    """Set the base-year actuals block from sourced cells ({field: {"pct"|"value", "source", "ref"}}).
+    Unlike workspace edits, cells keep their own source tags, so filing figures show as F.
+    dry_run computes the actual year without storing anything."""
+    ticker = ticker.upper()
+    keys = dict(actuals.FIELDS)
+    errs = [f"Unknown actuals field: {k}" for k in cells if k not in keys]
+    errs += [f"actuals.{k}: needs a numeric {keys[k]}" for k, c in cells.items()
+             if k in keys and not isinstance(c.get(keys[k]), (int, float))]
+    if errs:
+        raise BaseEditError(errs)
+    current = _current(db, ticker)
+    inputs = _inputs_of(current["model"])
+    inputs["actuals"] = {k: {keys[k]: c[keys[k]], **{f: c[f] for f in ("source", "ref") if c.get(f)}}
+                         for k, c in cells.items()}
+    year = inputs.get("meta", {}).get("base_year", "base year")
+    changes = [f"{year} actuals added (" + ", ".join(f"{k} {c[keys[k]]}" for k, c in cells.items()) + ")"]
+    return _store(db, ticker, current, inputs, changes, date.today().isoformat(), dry_run)

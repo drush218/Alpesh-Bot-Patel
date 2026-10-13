@@ -9,7 +9,7 @@ from datetime import date
 from supabase import Client
 
 from app.crypto import get_t212_credentials
-from app.services import t212_client
+from app.services import actuals, t212_client
 from app.services.analysis_view import latest_moves, macro_summary, score_links, staleness
 from app.services.market_data import parse_t212_ticker
 from app.services.scorecard import DIMENSIONS
@@ -80,6 +80,11 @@ def analyses_list(db: Client, user_id: str) -> dict:
         if p and bau and bau[0]["eps"] > 0:
             rate = fx(a.get("reporting_currency"), p["currency"])
             pe = float(p["close"]) / (bau[0]["eps"] * rate) if rate else None
+        act = actuals.compute(model)
+        pe_actual = None
+        if p and act["eps"] and act["eps"] > 0:
+            rate = fx(a.get("reporting_currency"), p["currency"])
+            pe_actual = float(p["close"]) / (act["eps"] * rate) if rate else None
         held = holdings.get(ticker) if holdings else None
         rows.append({
             "ticker": ticker,
@@ -91,6 +96,8 @@ def analyses_list(db: Client, user_id: str) -> dict:
             "price_currency": p["currency"] if p else None,
             "pe": pe,
             "pe_year": bau[0]["year"] if bau else None,
+            "pe_actual": pe_actual,
+            "pe_actual_year": act["year"],
             "eps_cagr": _eps_cagr(bau),
             "eps_cagr_years": f"{bau[0]['year']}–{bau[-1]['year']}" if len(bau) > 1 else None,
             "scores": scores.get(a["instrument_id"]),

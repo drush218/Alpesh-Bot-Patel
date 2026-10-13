@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchAnalyses } from '../../lib/apiClient'
 import { signedInt } from '../../lib/macro'
-import { currencySymbol, fmt, signed } from '../../lib/modelRows'
+import { fmt, signed } from '../../lib/modelRows'
 import type { AnalysesList, AnalysesRow } from '../../types/analysis'
 
 type Filter = 'all' | 'held' | 'watch'
-type SortKey = 'ticker' | 'status' | 'weight' | 'ppl' | 'pe' | 'eps' | 'macronet' | 'growth' | 'value' | 'income' | 'macro' | 'asof'
+type SortKey = 'ticker' | 'status' | 'weight' | 'ppl' | 'pe_actual' | 'pe' | 'eps' | 'macronet' | 'growth' | 'value' | 'income' | 'total' | 'asof'
 
 const SORTS: Record<SortKey, (r: AnalysesRow) => number | string | null> = {
   ticker: (r) => r.ticker,
   status: (r) => (r.held ? 0 : 1),
   weight: (r) => r.weight_pct,
   ppl: (r) => r.ppl_pct,
+  pe_actual: (r) => r.pe_actual,
   pe: (r) => r.pe,
   eps: (r) => r.eps_cagr,
   growth: (r) => r.scores?.growth ?? null,
   value: (r) => r.scores?.value ?? null,
   income: (r) => r.scores?.income ?? null,
-  macro: (r) => r.scores?.macro ?? null,
+  total: (r) => total(r),
   macronet: (r) => r.macro.net,
   asof: (r) => r.data_as_of,
 }
@@ -27,18 +28,28 @@ const COLUMNS: { key: SortKey; label: string; title?: string; align?: 'right' | 
   { key: 'status', label: 'Status' },
   { key: 'weight', label: 'Weight', align: 'right' },
   { key: 'ppl', label: 'P&L', align: 'right' },
+  { key: 'pe_actual', label: 'PE', title: 'Current price over base-year EPS, calculated from the analysis actuals', align: 'right' },
   { key: 'pe', label: 'Fwd PE', title: 'Current price over BAU EPS for the first forecast year', align: 'right' },
   { key: 'eps', label: 'EPS CAGR', title: 'BAU EPS growth per year across the forecast years', align: 'right' },
   { key: 'macronet', label: 'Macro', title: 'Net of the analysis macro links: strong ±2, mild ±1', align: 'right' },
   { key: 'growth', label: 'G', title: 'Your growth score (0–3)', align: 'center' },
   { key: 'value', label: 'V', title: 'Your value score (0–3)', align: 'center' },
   { key: 'income', label: 'I', title: 'Your income score (0–3)', align: 'center' },
-  { key: 'macro', label: 'M', title: 'Your macro score (0–3)', align: 'center' },
+  { key: 'total', label: 'Total', title: 'Growth + value + income, out of 9 (blank until all three are scored)', align: 'center' },
   { key: 'asof', label: 'Data as of', align: 'right' },
 ]
 
 const fmtDate = (iso: string | null) =>
   iso ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'
+
+const total = (r: AnalysesRow) => {
+  const s = r.scores
+  return s && s.growth != null && s.value != null && s.income != null ? s.growth + s.value + s.income : null
+}
+
+// Macro net shaded by strength: faint near zero, full colour from ±4 (|net| ≥ 3 is "strong").
+const macroTone = (net: number) =>
+  net === 0 ? 'var(--ink3)' : `color-mix(in srgb, ${net > 0 ? 'var(--up)' : 'var(--down)'} ${Math.round(35 + 65 * Math.min(Math.abs(net), 4) / 4)}%, var(--ink3))`
 
 const tone = (x: number | null) => (x == null || x === 0 ? undefined : x > 0 ? 'var(--up)' : 'var(--down)')
 
@@ -128,22 +139,26 @@ export function AnalysesScreen({ onOpen, active }: { onOpen: (ticker: string) =>
                   </td>
                   <td style={{ textAlign: 'right' }}>{r.weight_pct == null ? '—' : `${fmt(r.weight_pct, 1)}%`}</td>
                   <td style={{ textAlign: 'right', color: tone(r.ppl_pct) }}>{r.ppl_pct == null ? '—' : `${signed(r.ppl_pct, 1)}%`}</td>
+                  <td style={{ textAlign: 'right' }} title={r.pe_actual_year ? `${r.pe_actual_year}A EPS` : undefined}>
+                    {r.pe_actual == null ? '—' : `${fmt(r.pe_actual, 1)}×`}
+                  </td>
                   <td style={{ textAlign: 'right' }}>
                     {r.pe == null ? '—' : `${fmt(r.pe, 1)}×`}
-                    <div className="an-sub">{r.pe_year ?? ''}{r.price != null && ` · ${currencySymbol(r.price_currency ?? undefined)}${fmt(r.price, 2)}`}</div>
                   </td>
                   <td style={{ textAlign: 'right' }} title={r.eps_cagr_years ?? undefined}>
                     {r.eps_cagr == null ? '—' : `${signed(r.eps_cagr, 1)}%`}
                   </td>
-                  <td style={{ textAlign: 'right' }} title={`${r.macro.tailwind_links} tailwind · ${r.macro.headwind_links} headwind links`}>
-                    <span style={{ color: tone(r.macro.net) }}>{signedInt(r.macro.net)}</span>
-                    <div className="an-sub">{r.macro.verdict}</div>
+                  <td style={{ textAlign: 'right' }} title={`${r.macro.verdict} · ${r.macro.tailwind_links} tailwind · ${r.macro.headwind_links} headwind links`}>
+                    <span style={{ color: macroTone(r.macro.net), fontWeight: Math.abs(r.macro.net) >= 3 ? 600 : 400 }}>{signedInt(r.macro.net)}</span>
                   </td>
-                  {(['growth', 'value', 'income', 'macro'] as const).map((d) => (
+                  {(['growth', 'value', 'income'] as const).map((d) => (
                     <td key={d} style={{ textAlign: 'center' }} className="as-score">
                       {r.scores?.[d] ?? '—'}
                     </td>
                   ))}
+                  <td style={{ textAlign: 'center' }} className="as-score">
+                    {total(r) == null ? '—' : <b>{total(r)}</b>}
+                  </td>
                   <td style={{ textAlign: 'right' }}>
                     {r.stale && <span className="as-stale" title="Earnings reported since this analysis's data date">STALE</span>}
                     {fmtDate(r.data_as_of)}

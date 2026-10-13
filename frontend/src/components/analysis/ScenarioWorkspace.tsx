@@ -9,8 +9,7 @@ import {
 } from '../../lib/apiClient'
 import { currencySymbol } from '../../lib/modelRows'
 import type { Override, ScenarioSummary, WorkspaceResult } from '../../types/analysis'
-import { Drivers } from './Drivers'
-import { InputsTable } from './InputsTable'
+import { DeltaInputs } from './InputsTable'
 import { PeChart } from './ValuationPanels'
 import { EpsBand, OutputTable } from './OutputTable'
 
@@ -53,7 +52,8 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded, onBaseSaved }: {
   const dirty = !sameEdits(edits, loadedEdits)
   const current = saved.find((s) => s.id === selected) ?? null
   const showingBase = Object.keys(edits).length === 0
-  const comparing = compare && !showingBase // nothing to compare while showing the base
+  // nothing to compare while showing the base; while editing keep the columns fixed so inputs don't remount mid-typing
+  const comparing = compare && (editing || !showingBase)
 
   const fail = (e: unknown) => setError(e instanceof Error ? e.message : String(e))
 
@@ -101,10 +101,10 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded, onBaseSaved }: {
     }, 250)
   }
 
-  const onEdit = (path: string, value: number, base: number) => {
+  const onEdit = (path: string, value: number, base: number | null) => {
     setEdits((prev) => {
       const next = { ...prev }
-      if (Math.abs(value - base) < 1e-9) delete next[path]
+      if (base != null && Math.abs(value - base) < 1e-9) delete next[path]
       else next[path] = value
       rerun(next)
       return next
@@ -328,8 +328,8 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded, onBaseSaved }: {
         </div>
         <div style={{ display: 'flex', border: '1px solid var(--line2)', borderRadius: 3, overflow: 'hidden' }}>
           {[
-            { on: !comparing, label: showingBase ? 'Base' : 'Scenario only', click: () => setCompare(false), disabled: false },
-            { on: comparing, label: 'Compare to base', click: () => setCompare(true), disabled: showingBase },
+            { on: !comparing, label: showingBase && !editing ? 'Base' : 'Scenario only', click: () => setCompare(false), disabled: false },
+            { on: comparing, label: 'Compare to base', click: () => setCompare(true), disabled: showingBase && !editing },
           ].map((b) => (
             <button
               key={b.label}
@@ -352,25 +352,28 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded, onBaseSaved }: {
         </div>
       </div>
 
-      <OutputTable result={result} compare={comparing} scenarioLabel={editing && dirty ? 'now' : current ? 'scen.' : 'now'} />
+      <OutputTable
+        key={tableKey}
+        result={result}
+        compare={comparing}
+        scenarioLabel={editing && dirty ? 'now' : current ? 'scen.' : 'now'}
+        edits={edits}
+        onEdit={editing ? onEdit : undefined}
+        editActuals={editingBase}
+      />
+      {editing && (
+        <div className="an-edit">
+          <div className="an-sub" style={{ marginBottom: 6 }}>
+            {editingBase ? 'Fixes to the analysis itself; saving stores a new version' : 'Edits update the table above as you type'}
+          </div>
+          <DeltaInputs key={tableKey} inputs={result.base_inputs} edits={edits} onChange={onEdit} />
+        </div>
+      )}
       <EpsBand result={result} />
 
       <div className="an-micro" style={{ margin: '14px 0 2px' }}>PE at current price{comparing ? ' · edited' : ''}</div>
       <PeChart outputs={result.outputs ?? result.base_outputs} years={result.base_inputs.meta.forecast_years} price={price} />
 
-      {!editing && <Drivers inputs={result.base_inputs} />}
-
-      {editing && (
-        <div className="an-edit">
-          <div className="an-head" style={{ marginBottom: 8 }}>
-            <h2 style={{ fontSize: 14 }}>{editingBase ? 'Base inputs' : 'Inputs'}</h2>
-            <span className="an-sub">
-              {editingBase ? 'Fixes to the analysis itself; saving stores a new version' : 'Edits update the table above as you type'}
-            </span>
-          </div>
-          <InputsTable key={tableKey} inputs={result.base_inputs} edits={edits} onChange={onEdit} />
-        </div>
-      )}
     </section>
   )
 }

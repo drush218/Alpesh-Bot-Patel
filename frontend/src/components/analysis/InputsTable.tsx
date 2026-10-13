@@ -1,24 +1,21 @@
 import type { ModelInputs } from '../../types/analysis'
-import { deltaRows, fmt, inputRows } from '../../lib/modelRows'
+import { deltaRows, fmt, stepDp } from '../../lib/modelRows'
 import { sourceTag } from './Drivers'
 
-interface Props {
-  inputs: ModelInputs
-  edits: Record<string, number>
-  onChange: (path: string, value: number, base: number) => void
-}
+export type OnEdit = (path: string, value: number, base: number | null) => void
 
-function Cell({ path, base, step, source, note, edits, onChange }: {
+/** One editable driver value; amber with "was" when it differs from base. */
+export function Cell({ path, base, step, source, note, edits, onChange }: {
   path: string
-  base: number
+  base: number | null
   step: number
   source?: string
   note?: string
   edits: Record<string, number>
-  onChange: Props['onChange']
+  onChange: OnEdit
 }) {
   const edited = path in edits
-  const title = [`base ${base}${source && source !== 'none' ? ` · ${source}` : ''}`, note, path].filter(Boolean).join('\n')
+  const title = [`base ${base ?? 'not set'}${source && source !== 'none' ? ` · ${source}` : ''}`, note, path].filter(Boolean).join('\n')
   return (
     <span className={`an-cell${edited ? ' edited' : ''}`} title={title}>
       <input
@@ -26,61 +23,36 @@ function Cell({ path, base, step, source, note, edits, onChange }: {
         step={step}
         id={`in-${path}`}
         aria-label={path}
-        defaultValue={edited ? edits[path] : base}
+        defaultValue={edited ? edits[path] : base ?? ''}
         onChange={(e) => {
           const v = parseFloat(e.target.value)
           if (!Number.isNaN(v)) onChange(path, v, base)
         }}
       />
       <span className={`src src-${sourceTag(source, note)?.tag ?? ''}`}>{sourceTag(source, note)?.tag ?? ''}</span>
-      {edited && <span className="was">was {fmt(base, step >= 1 ? 0 : 1)}</span>}
+      {edited && <span className="was">was {fmt(base, stepDp(step))}</span>}
     </span>
   )
 }
 
-export function InputsTable({ inputs, edits, onChange }: Props) {
-  const years = inputs.meta.forecast_years
+/** LOW/HIGH scenario deltas, shown under the income statement while editing. */
+export function DeltaInputs({ inputs, edits, onChange }: { inputs: ModelInputs; edits: Record<string, number>; onChange: OnEdit }) {
   return (
     <>
-      <div className="an-scroll">
-        <table className="an-table" aria-label="Model inputs">
-          <thead>
-            <tr>
-              <th>Input</th>
-              {years.map((y) => <th key={y}>{y}</th>)}
+      <table className="an-table" aria-label="Scenario deltas" style={{ width: 'auto' }}>
+        <thead>
+          <tr><th>Scenario deltas vs BAU · all years</th><th>growth pp</th><th>margin pp</th></tr>
+        </thead>
+        <tbody>
+          {deltaRows(inputs).map((d) => (
+            <tr key={d.label}>
+              <td className="lbl">{d.label}</td>
+              <td><Cell {...d.growth} step={0.5} note={d.ref} edits={edits} onChange={onChange} /></td>
+              <td><Cell {...d.margin} step={0.5} note={d.ref} edits={edits} onChange={onChange} /></td>
             </tr>
-          </thead>
-          <tbody>
-            {inputRows(inputs).map((r) =>
-              'group' in r ? (
-                <tr key={r.group} className="group"><td colSpan={years.length + 1}>{r.group}</td></tr>
-              ) : (
-                <tr key={r.label}>
-                  <td className="lbl">{r.label}<span className="u">{r.unit}</span></td>
-                  {r.cells.map((c) => (
-                    <td key={c.path}><Cell path={c.path} base={c.base} source={c.source} note={c.ref} step={r.step} edits={edits} onChange={onChange} /></td>
-                  ))}
-                </tr>
-              ),
-            )}
-            <tr className="group"><td colSpan={years.length + 1}>Scenario deltas vs BAU · all years</td></tr>
-            <tr>
-              <td />
-              <th>growth pp</th>
-              <th>margin pp</th>
-              {years.slice(2).map((y) => <th key={y} />)}
-            </tr>
-            {deltaRows(inputs).map((d) => (
-              <tr key={d.label}>
-                <td className="lbl">{d.label}</td>
-                <td><Cell {...d.growth} step={0.5} note={d.ref} edits={edits} onChange={onChange} /></td>
-                <td><Cell {...d.margin} step={0.5} note={d.ref} edits={edits} onChange={onChange} /></td>
-                {years.slice(2).map((y) => <td key={y} />)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
       <div className="an-legend">
         <span>amber = edited · was = base value</span>
         <span>G guidance · F filing / reported · A assumption · E edited by you (hover a cell for the source)</span>

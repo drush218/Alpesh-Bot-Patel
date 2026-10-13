@@ -20,7 +20,7 @@ class ScorecardIn(BaseModel):
     growth: int = Field(ge=0, le=3)
     value: int = Field(ge=0, le=3)
     income: int = Field(ge=0, le=3)
-    macro: int = Field(ge=0, le=3)
+    macro: int | None = Field(default=None, ge=0, le=3)  # no longer scored in the UI; the screener's macro net covers it
     bull_catalysts: list[Catalyst] = []
     bear_catalysts: list[Catalyst] = []
     note: str | None = None

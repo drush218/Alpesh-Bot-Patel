@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from supabase import Client
 
-from app.services import scenarios, stock_model
+from app.services import actuals, scenarios, stock_model
 
 # stock_model keeps its errors/warnings in module globals, so concurrent runs would mix them.
 _engine_lock = threading.Lock()
@@ -28,7 +28,8 @@ def _run(inputs: dict) -> tuple[dict | None, list, list]:
 
 
 def _inputs_of(model: dict) -> dict:
-    return {k: v for k, v in model.items() if k not in ("outputs", "schema_version")}
+    """Model inputs, with an actuals skeleton so the base year's inputs can be edited before they're filled."""
+    return actuals.with_skeleton({k: v for k, v in model.items() if k not in ("outputs", "schema_version")})
 
 
 def current_analysis(db: Client, ticker: str) -> dict:
@@ -60,15 +61,6 @@ def latest_price(db: Client, instrument_id: int, reporting_ccy: str | None) -> d
             "fetched_at": p["fetched_at"], "source": p.get("source"), "fx": float(fx) if fx is not None else None}
 
 
-def _actual(inputs: dict) -> dict:
-    """Base-year actuals the analysis carries. Costs, net income and EPS aren't in the v2 inputs yet."""
-    return {
-        "year": inputs.get("meta", {}).get("base_year"),
-        "revenue": sum(s["base"] for s in inputs["revenue"]["segments"]),
-        "shares": inputs["shares"]["base_diluted"],
-    }
-
-
 def _evaluate(db: Client, base: dict, saved_overrides: list) -> dict:
     inputs, could_not_apply, base_moved = scenarios.apply_overrides(base["inputs"], saved_overrides)
     model, errors, warnings = _run(inputs)
@@ -76,7 +68,7 @@ def _evaluate(db: Client, base: dict, saved_overrides: list) -> dict:
         "analysis_id": base["analysis_id"],
         "data_as_of": base["inputs"].get("meta", {}).get("data_as_of"),
         "price": latest_price(db, base["instrument_id"], base["inputs"].get("meta", {}).get("reporting_currency")),
-        "actual": _actual(base["inputs"]),
+        "actual": actuals.compute(inputs),  # with edits, so base-year fixes show live
         "base_inputs": base["inputs"],
         "base_outputs": base["outputs"],
         "outputs": model["outputs"] if model else None,

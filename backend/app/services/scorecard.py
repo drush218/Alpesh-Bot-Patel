@@ -69,7 +69,7 @@ def save_scorecard(db: Client, user_id: str, ticker: str, card: dict) -> dict:
     db.table("scorecards").insert({
         "user_id": user_id,
         "instrument_id": base["instrument_id"],
-        **{d: card[d] for d in DIMENSIONS},
+        **{d: card.get(d) for d in DIMENSIONS},
         "bull_catalysts": card.get("bull_catalysts", []),
         "bear_catalysts": card.get("bear_catalysts", []),
         "note": card.get("note"),

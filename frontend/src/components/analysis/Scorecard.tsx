@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { fetchScorecard, saveScorecard } from '../../lib/apiClient'
-import { signedInt } from '../../lib/macro'
-import type { Catalyst, CatalystStatus, Dimension, MacroSummary, ScorecardIn, ScorecardResponse } from '../../types/analysis'
+import type { Catalyst, CatalystStatus, Dimension, ScorecardIn, ScorecardResponse } from '../../types/analysis'
 
-const DIMS: [Dimension, string][] = [['growth', 'Growth'], ['value', 'Value'], ['income', 'Income'], ['macro', 'Macro']]
+const DIMS: [Dimension, string][] = [['growth', 'Growth'], ['value', 'Value'], ['income', 'Income']]
 const NEXT_STATUS: Record<CatalystStatus, CatalystStatus> = { open: 'hit', hit: 'missed', missed: 'open' }
 type Side = 'bull_catalysts' | 'bear_catalysts'
 
@@ -15,7 +14,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 const fmtDate = (d: string) =>
   new Date(`${d}T00:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 
-export function Scorecard({ ticker, onTargetPe, macroSummary }: { ticker: string; onTargetPe?: (pe: number | null) => void; macroSummary?: MacroSummary }) {
+export function Scorecard({ ticker, onTargetPe }: { ticker: string; onTargetPe?: (pe: number | null) => void }) {
   const [data, setData] = useState<ScorecardResponse | null>(null)
   const [card, setCard] = useState<ScorecardIn>(blank)
   const [dirty, setDirty] = useState(false)
@@ -77,7 +76,7 @@ export function Scorecard({ ticker, onTargetPe, macroSummary }: { ticker: string
   }
 
   const sug = data.suggested
-  const complete = card.growth != null && card.value != null && card.income != null && card.macro != null
+  const complete = card.growth != null && card.value != null && card.income != null
   const status =
     msg ??
     (dirty ? 'Unsaved changes' : data.versions ? `${data.versions} saved version${data.versions === 1 ? '' : 's'} · dated catalysts show in upcoming events` : 'Not scored yet. Click a box to score 0–3.')
@@ -92,7 +91,7 @@ export function Scorecard({ ticker, onTargetPe, macroSummary }: { ticker: string
       <div className="sc-dims">
         {DIMS.map(([k, label]) => {
           const mine = card[k]
-          const theirs = k === 'macro' ? null : sug?.[k]?.score
+          const theirs = sug?.[k as 'growth']?.score
           const diff = mine != null && theirs != null ? Math.abs(mine - theirs) : 0
           return (
             <div key={k} className={`sc-dim${diff >= 2 ? ' flag' : ''}`}>
@@ -111,11 +110,7 @@ export function Scorecard({ ticker, onTargetPe, macroSummary }: { ticker: string
                   </button>
                 ))}
               </div>
-              <span className="diff" style={k === 'macro' ? { color: 'var(--ink3)' } : undefined}>
-                {k === 'macro'
-                  ? macroSummary ? `net ${signedInt(macroSummary.net)}` : ''
-                  : diff >= 2 ? `Claude ${theirs}` : ''}
-              </span>
+              <span className="diff">{diff >= 2 ? `Claude ${theirs}` : ''}</span>
             </div>
           )
         })}
@@ -173,7 +168,7 @@ export function Scorecard({ ticker, onTargetPe, macroSummary }: { ticker: string
           </button>
           {claudeOpen && (
             <div className="sc-claude">
-              {DIMS.filter(([k]) => k !== 'macro').map(([k, label]) => (
+              {DIMS.map(([k, label]) => (
                 <div key={k} className="row">
                   <span>{label}</span>
                   <b title={sug[k as 'growth']?.score_1_5 != null ? `${sug[k as 'growth']?.score_1_5}/5 in the analysis` : undefined}>{sug[k as 'growth']?.score ?? '—'}</b>

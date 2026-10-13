@@ -43,7 +43,8 @@ class WorkspaceCase(unittest.TestCase):
         self.assertEqual(_bau_fy27_growth(res["outputs"]), 30.0)
         self.assertEqual(res["base_outputs"], self.model["outputs"])
         self.assertEqual((res["price"]["close"], res["price"]["fx"]), (38.67, 1.0))
-        self.assertEqual(res["actual"], {"year": "FY2025", "revenue": 1638, "shares": 187.7})
+        self.assertEqual({k: res["actual"][k] for k in ("year", "revenue", "shares", "eps")},
+                         {"year": "FY2025", "revenue": 1638, "shares": 187.7, "eps": None})  # no actuals block in the fixture
 
     def test_preview_reports_unknown_path(self):
         res = workspace.preview(self.db, "BROS", [{"path": "revenue.segments[Nope].growth[FY2027].pct", "value": 1}])

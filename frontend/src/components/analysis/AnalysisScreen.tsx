@@ -115,7 +115,7 @@ export function AnalysisScreen({ ticker, onSize, onBack }: { ticker: string; onS
           )}
         </div>
         <aside>
-          <Scorecard key={ticker} ticker={ticker} onTargetPe={setTargetPe} macroSummary={view?.macro_summary} />
+          <Scorecard key={ticker} ticker={ticker} onTargetPe={setTargetPe} />
           {view && (
             <>
               <Thesis view={view} />

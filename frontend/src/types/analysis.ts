@@ -31,6 +31,9 @@ export interface ModelInputs {
   tax_rate: SourcedPct[]
   nci_pct?: SourcedPct[]
   shares: { base_diluted: number; annual_change: SourcedPct[] }
+  /** Base-year inputs; the workspace always sends every field, null until filled. */
+  actuals?: Record<'operating_margin' | 'tax_rate' | 'nci_pct', { pct: number | null; source?: string; ref?: string }> &
+    Record<'net_interest' | 'reported_eps', { value: number | null; source?: string; ref?: string }>
   scenarios: Record<'low' | 'high', { growth_pp: number; margin_pp: number; ref?: string }>
 }
 
@@ -77,7 +80,18 @@ export interface WorkspaceResult {
   analysis_id: number
   data_as_of: string | null
   price: Price | null
-  actual: { year: string; revenue: number; shares: number }
+  /** Base year, calculated like a forecast year from the analysis's actuals block (backend services/actuals.py). */
+  actual: {
+    year: string
+    revenue: number
+    shares: number
+    operating_margin_pct: number | null
+    costs: number | null
+    net_income: number | null
+    eps: number | null
+    reported_eps: number | null
+    eps_check_pct: number | null
+  }
   base_inputs: ModelInputs
   base_outputs: ModelOutputs
   outputs: ModelOutputs | null
@@ -243,6 +257,8 @@ export interface AnalysesRow {
   price_currency: string | null
   pe: number | null
   pe_year: string | null
+  pe_actual: number | null
+  pe_actual_year: string | null
   eps_cagr: number | null
   eps_cagr_years: string | null
   scores: { growth: number | null; value: number | null; income: number | null; macro: number | null } | null
