@@ -42,15 +42,17 @@ const fmtDate = (iso: string | null) =>
 
 const tone = (x: number | null) => (x == null || x === 0 ? undefined : x > 0 ? 'var(--up)' : 'var(--down)')
 
-export function AnalysesScreen({ onOpen }: { onOpen: (ticker: string) => void }) {
+export function AnalysesScreen({ onOpen, active }: { onOpen: (ticker: string) => void; active: boolean }) {
   const [data, setData] = useState<AnalysesList | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: 'status', desc: false })
 
+  // Kept mounted between visits: the old list shows instantly and is refreshed quietly each time
+  // the screen comes back, since scorecards or analyses may have changed in the meantime.
   useEffect(() => {
-    fetchAnalyses().then(setData).catch((e) => setError(e.message))
-  }, [])
+    if (active) fetchAnalyses().then(setData).catch((e) => setError(e.message))
+  }, [active])
 
   const rows = useMemo(() => {
     if (!data) return []

@@ -18,20 +18,24 @@ v2 was merged to `main` and deployed (Render, one Docker service) in Oct 2026.
 
 **Backend layout** (`backend/app/`): `routers/` thin FastAPI endpoints, `services/` logic. Every request queries Supabase as the signed-in user (`deps.get_current_user` → `user.db`) so RLS applies.
 - `services/workspace.py` — current analysis lookup, scenario preview/save/load (rebase onto newer analyses), `latest_price` (with EPS→quote FX)
-- `services/scorecard.py` — append-only user scorecards; never prefilled
+- `services/scorecard.py` — append-only user scorecards; never prefilled. Scores 0–3 (0 is a real score) for growth/value/income/macro, plus target PE + justification. Claude's 1–5 suggestions are mapped for display (1→0, 2→1, 3→2, 4–5→3)
+- `services/analyses_list.py` — Analyses screen (screener of every current analysis: held/watch, fwd PE, EPS CAGR, macro net, your scores). Watch = analysed but not held
+- `services/base_edit.py` — "Save as base": workspace edits written into the stored markdown's json block, engine reruns, stored via `ingest.store` (new analysis version; old kept). Edited cells get source `assumption` + ref "Edited in Portfolio Terminal …" (shown as tag E). Scenarios are for deviations from BAU
+- `services/dividends.py` — user dividend input per stock (`dividend_inputs`: per payment × frequency / half-year / annual / uneven list), quote currency; Yahoo TTM shown as a check
 - `services/ingest.py` — analysis upload; wraps root `markdown_to_json.py` (parser) + `analysis_db.confirm_ingest(payload, supabase=db)` (stage → promote write path, shared with Streamlit)
-- `services/analysis_view.py` — Analysis screen payload; **staleness = an earnings date after the analysis's `data_as_of` has passed** (not upload date; the SQL view `v_analysis_staleness` still uses created_at and is unused)
+- `services/analysis_view.py` — Analysis screen payload; **staleness = an earnings date after the analysis's `data_as_of` has passed** (not upload date; the SQL view `v_analysis_staleness` still uses created_at and is unused). Macro links: **direction is a sensitivity** (bull = gains when the factor rises), so a link's headwind/tailwind = sensitivity (strong/medium ±2, mild ±1, negligible 0) × the factor's 1-month move; summed per stock and banded like the Macro screen (|net| ≥ 3 strong)
 - `services/macro_data.py` — FRED CSV series → `macro_factor_moves` (1-month change, up/down/flat). `china_activity` has no source (FRED series ended 2024)
 - `services/macro_view.py` — analysis macro links × factor moves → verdicts, matrix, book tilt
 - `services/expected_move.py` — **light** expected-move check: index-only OLS, 250d fit, flag |z| ≥ 2.5, results days labelled "earnings". User chose light over the full 4-factor model. Purpose: highlight holdings worth running an analysis on
 - `services/dashboard.py` — tiles; Yahoo quotes/calendar/dividends, parallel + cached
-- `services/deposits.py` — deposit stats (same `user_settings` cache as Streamlit)
+- `services/deposits.py` — deposit stats (same `user_settings` cache as Streamlit) plus dated net flows (`deposit_flows` jsonb, per day) → money-weighted return (`xirr_pct`). A cache without flows triggers one full rescan
+- `services/benchmarks.py` — index returns on the same dated deposits (each flow buys index units that day), XIRR; index currency, no FX
 - `services/index_map.py` — hand-maintained ticker→index map (current holdings mapped Oct 2026; ONON → SPX is a judgement call)
 - `services/stock_model.py` — vendored skill engine; don't edit, re-copy from the skill
 
 **Trading212 tickers:** use `market_data.parse_t212_ticker` (`BGEOl_EQ` → `BGEO` / `BGEO.L`, `MSFT_US_EQ` → `MSFT`). Never `split("_")` — it breaks London names.
 
-**Frontend:** plain CSS tokens (`styles/tokens.css`), mostly inline styles plus `styles/book.css` / `styles/analysis.css`. Screen switching in `App.tsx`; nav in `components/layout/Header.tsx`. Approved Analysis workspace preview: https://claude.ai/artifact/KhSvpd8SiwW8jQcPvBwDhQ
+**Frontend:** plain CSS tokens (`styles/tokens.css`), mostly inline styles plus `styles/book.css` / `styles/analysis.css`. Screen switching in `App.tsx` (screens stay mounted once visited, hidden with `hidden`, so tab switches don't refetch; the Analyses list refreshes quietly when shown); nav in `components/layout/Header.tsx`. Analysis detail layout: Income statement (forecast) tile = workspace + PE chart + Drivers (source tags G/F/A/E) → Income → Sensitivities → Implied share price (defaults to scorecard target PE, else current PE). Approved Analysis workspace preview: https://claude.ai/artifact/KhSvpd8SiwW8jQcPvBwDhQ
 
 **Adding analyses:** stock-analysis skill → `.md` with a ```json stock-model block → save under `analyses/` → parse with the real parser and show the user the preview → on their OK, write through the same ingest path (Settings upload, or connector SQL generated from `confirm_ingest`). Never hand-write analysis rows. Confirm before every Supabase write. v2 files carry no base-year actuals, risks or peers. Connector-SQL ingest pitfall: the SQL transport decodes `\uXXXX` escapes inside the JSON block, so re-escape non-ASCII chars in the block before hashing or `content_hash` won't match the file (done this way on 11 Oct 2026).
 
@@ -39,7 +43,9 @@ v2 was merged to `main` and deployed (Render, one Docker service) in Oct 2026.
 
 **Analyses on file (Oct 2026):** BROS, CAML, DECK, GRG, MELI, ONON, PYPL, SMCI, UBER (files in `analyses/`, ingested 11 Oct 2026). Not modelled: MSFT; BGEO and UKW parked — they need a different template (bank / investment trust). Six proposed macro factors await approval in Settings.
 
-**Open items:** money-weighted CAGR on the Dashboard (current CAGR treats all deposits as day one — inherited from Streamlit); FX for ONON (CHF EPS → USD) and CAML (USD EPS → GBp) — `fx_rates` only holds USD→GBP, check live PE on both.
+**Open items:** FX for ONON (CHF EPS → USD) and CAML (USD EPS → GBp) — `fx_rates` only holds USD→GBP, check live PE on both.
+
+**Next up — period returns (agreed 12–13 Oct 2026, not built):** per-calendar-year money-weighted returns + 1Y/2Y/3Y/All window buttons (with indices on the same flows/windows). Past values: the user enters the account value at 31 Dec 2023/2024/2025 from T212 statements (Settings). Going forward: save the account value on each app visit (one row/day; tiny). Needs a small new table — show the migration first. Optional later: a scheduled job (e.g. GitHub Action) to snapshot daily when the app isn't opened (Render free sleeps). User preferred this over rebuilding history from T212 order history.
 
 **Next phase:** the user is reviewing the app screen by screen and will streamline it (cut what isn't needed). Make one focused change per comment.
 

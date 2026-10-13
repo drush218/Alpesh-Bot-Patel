@@ -35,9 +35,12 @@ function metricsFor(a: AccountSummary): Metric[] {
       tone: toneOf(a.total_return_pct),
     },
     {
-      label: 'annualised (CAGR)',
+      label: 'annualised (money-weighted)',
       value: a.cagr_pct != null ? formatPct(a.cagr_pct) : '—',
-      sub: a.years != null ? `over ${a.years.toFixed(1)} yrs` : undefined,
+      sub: [
+        a.years != null ? `over ${a.years.toFixed(1)} yrs` : null,
+        a.simple_cagr_pct != null ? `day-one basis ${formatPct(a.simple_cagr_pct)}` : null,
+      ].filter(Boolean).join(' · ') || undefined,
       tone: 'ink3',
     },
     { label: 'cost basis', value: formatGbp(a.cost_basis_gbp) },
@@ -68,7 +71,7 @@ export function AccountStrip({ account }: { account: AccountSummary }) {
     if (!benchmarks && !benchError) {
       fetchBenchmarks()
         .then(setBenchmarks)
-        .catch((e) => setBenchError(e.message || 'Failed to load index CAGRs'))
+        .catch((e) => setBenchError(e.message || 'Failed to load index returns'))
     }
   }
 
@@ -115,7 +118,7 @@ export function AccountStrip({ account }: { account: AccountSummary }) {
           }}
         >
           <span style={{ color: 'var(--accent)' }}>{open ? '▾' : '▸'}</span>
-          CAGR vs indices <span style={{ color: 'var(--ink3)' }}>since first deposit</span>
+          Return vs indices <span style={{ color: 'var(--ink3)' }}>your deposits, same dates, put in each index</span>
         </button>
 
         {open && (

@@ -47,21 +47,21 @@ def get_account(user: CurrentUser = Depends(get_current_user)) -> AccountSummary
         summary.total_return_gbp = total - deposited
         summary.total_return_pct = (total - deposited) / deposited * 100
         summary.years = years
-        summary.cagr_pct = deposits.cagr_pct(total, deposited, years)
+        summary.simple_cagr_pct = deposits.cagr_pct(total, deposited, years)
+        summary.cagr_pct = deposits.xirr_pct(stats["flows"], total) if stats.get("flows") else None
     return summary
 
 
 @router.get("/account/benchmarks", response_model=BenchmarksResponse)
 def get_benchmarks(user: CurrentUser = Depends(get_current_user)) -> BenchmarksResponse:
-    """Index CAGRs over the same period as the account. Uses cached deposit stats only (no T212 call)."""
+    """Money-weighted index returns on the account's own deposits. Uses cached deposit stats only (no T212 call)."""
     stats = deposits.load_cached(user.db, user.id)
+    flows = stats.get("flows") if stats else None
     since = stats["first_deposit_date"] if stats else None
-    years = deposits.years_since(since)
-    if not since or not years:
+    if not flows or not since:
         return BenchmarksResponse(indices=[BenchmarkCagr(name=n, symbol=s) for n, s in benchmarks.INDICES])
-    start = since[:10]
     return BenchmarksResponse(
-        since=start,
-        years=years,
-        indices=[BenchmarkCagr(**row) for row in benchmarks.index_cagrs(start, years)],
+        since=since[:10],
+        years=deposits.years_since(since),
+        indices=[BenchmarkCagr(**row) for row in benchmarks.index_returns(flows)],
     )

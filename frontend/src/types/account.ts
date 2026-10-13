@@ -12,6 +12,7 @@ export interface AccountSummary {
   total_return_gbp: number | null
   total_return_pct: number | null
   cagr_pct: number | null
+  simple_cagr_pct?: number | null // every deposit treated as day one
   years: number | null
   warnings: string[]
 }

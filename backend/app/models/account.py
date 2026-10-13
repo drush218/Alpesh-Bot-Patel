@@ -13,7 +13,8 @@ class AccountSummary(BaseModel):
     first_deposit_date: str | None = None
     total_return_gbp: float | None = None
     total_return_pct: float | None = None
-    cagr_pct: float | None = None
+    cagr_pct: float | None = None          # money-weighted (XIRR on dated deposits)
+    simple_cagr_pct: float | None = None   # old figure: every deposit treated as made on day one
     years: float | None = None
     warnings: list[str] = []
 

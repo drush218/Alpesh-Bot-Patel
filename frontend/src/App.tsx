@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { refreshMacro, refreshMarket } from './lib/apiClient'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -18,18 +18,25 @@ function AppShell() {
   const [screen, setScreen] = useState<Screen>('dashboard')
   const [analysisTicker, setAnalysisTicker] = useState<string | null>(null)
   const [sizerTicker, setSizerTicker] = useState<string | null>(null)
+  // Screens stay mounted (hidden) once opened, so switching back is instant instead of refetching.
+  const [visited, setVisited] = useState<ReadonlySet<Screen>>(() => new Set<Screen>(['dashboard']))
+  const show = (s: Screen) => {
+    setScreen(s)
+    setVisited((v) => (v.has(s) ? v : new Set(v).add(s)))
+  }
   const openSizer = (t: string) => {
     setSizerTicker(t)
-    setScreen('sizer')
+    show('sizer')
   }
   const navigate = (s: Screen) => {
     if (s === 'analysis') setAnalysisTicker(null) // the nav tab always lands on the list
-    setScreen(s)
+    show(s)
   }
   const openAnalysis = (t: string) => {
     setAnalysisTicker(t)
-    setScreen('analysis')
+    show('analysis')
   }
+  const kept = (s: Screen, node: ReactNode, hidden = screen !== s) => visited.has(s) && <div hidden={hidden}>{node}</div>
 
   useEffect(() => {
     if (!userId) return
@@ -43,17 +50,15 @@ function AppShell() {
   return (
     <>
       <Header screen={screen} onNavigate={navigate} />
-      {screen === 'dashboard' && <DashboardScreen onNavigate={navigate} onOpenAnalysis={openAnalysis} />}
-      {screen === 'book' && (
-        <BookScreen onOpenAnalysis={openAnalysis} />
-      )}
-      {screen === 'analysis' && !analysisTicker && <AnalysesScreen onOpen={openAnalysis} />}
+      {kept('dashboard', <DashboardScreen onNavigate={navigate} onOpenAnalysis={openAnalysis} />)}
+      {kept('book', <BookScreen onOpenAnalysis={openAnalysis} />)}
+      {kept('analysis', <AnalysesScreen onOpen={openAnalysis} active={screen === 'analysis' && !analysisTicker} />, screen !== 'analysis' || !!analysisTicker)}
       {screen === 'analysis' && analysisTicker && (
         <AnalysisScreen key={analysisTicker} ticker={analysisTicker} onSize={openSizer} onBack={() => setAnalysisTicker(null)} />
       )}
-      {screen === 'macro' && <MacroScreen />}
-      {screen === 'sizer' && <SizerScreen key={sizerTicker ?? ''} initialTicker={sizerTicker} />}
-      {screen === 'settings' && <SettingsScreen onOpenAnalysis={openAnalysis} />}
+      {kept('macro', <MacroScreen />)}
+      {kept('sizer', <SizerScreen key={sizerTicker ?? ''} initialTicker={sizerTicker} />)}
+      {kept('settings', <SettingsScreen onOpenAnalysis={openAnalysis} />)}
     </>
   )
 }
