@@ -1,5 +1,5 @@
 """
-v2 ingest / workspace tests (claude-code-handoff/handoff/CLAUDE_CODE_PROMPT_model_v2.md section 8).
+v2 ingest / workspace tests (stock-model v2 spec, section 8).
 
 Covers 7 (scenario rebase flags "base moved"), 8 (re-ingest leaves the user scorecard alone),
 and the ingest half of 9 (pending us_gasoline_retail proposal). analysis_db runs against an

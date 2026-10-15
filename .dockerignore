@@ -10,4 +10,3 @@ frontend/dist
 .env
 .streamlit
 tests
-ABP.ipynb

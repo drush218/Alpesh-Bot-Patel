@@ -1,7 +1,6 @@
 """
 analysis_db.py
-Supabase writes for the v2 analysis ingestion flow
-(claude-code-handoff/handoff/CLAUDE_CODE_PROMPT_model_v2.md; schema in supabase/migrations/).
+Supabase writes for the v2 analysis ingestion flow (schema in supabase/migrations/).
 
 Only v2 payloads (```json stock-model block) are stored. Legacy v1 files still parse for preview
 but are rejected here; re-run them through the stock-analysis skill instead.
@@ -22,9 +21,8 @@ import re
 
 
 def init_supabase():
-    """Streamlit's client. The webapp backend passes its own user client to confirm_ingest instead."""
-    from auth import init_supabase as _streamlit_client
-    return _streamlit_client()
+    """No default client: callers pass the signed-in user's client so RLS applies."""
+    raise RuntimeError("analysis_db needs a Supabase client; pass supabase=user.db")
 
 LEVER_COLUMNS = ("base", "lever_name", "exposure", "exposure_pct", "speed", "direction",
                  "macro_factor_code", "channel_group", "watch_metric", "current_reading",

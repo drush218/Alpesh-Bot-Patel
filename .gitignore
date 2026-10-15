@@ -9,3 +9,9 @@ __pycache__/
 node_modules/
 frontend/dist/
 backend/venv/
+
+# Personal / local only
+analyses/
+CLAUDE.md
+.claude/settings.local.json
+.streamlit/

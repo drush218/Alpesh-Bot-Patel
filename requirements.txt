@@ -1,7 +1,0 @@
-streamlit
-yfinance
-requests
-supabase
-cryptography
-plotly
-streamlit-js-eval

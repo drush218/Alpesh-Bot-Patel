@@ -1,5 +1,5 @@
 """
-v2 stock-model ingest tests (claude-code-handoff/handoff/CLAUDE_CODE_PROMPT_model_v2.md section 8).
+v2 stock-model ingest tests (stock-model v2 spec, section 8).
 
 Covers the DB-free tests: 2 (v2 fixture parses), 3 (bad enum rejected), 5 (split macro rows kept
 apart), 6 (vendored engine reproduces stored outputs). Test 1 (legacy byte-identical) is
