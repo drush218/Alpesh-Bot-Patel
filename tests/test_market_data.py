@@ -27,6 +27,7 @@ class TestParseT212Ticker(unittest.TestCase):
         self.assertEqual(market_data.parse_t212_ticker("HSBAl_EQ"), ("HSBA", "HSBA.L"))
         self.assertEqual(market_data.parse_t212_ticker("BRK_B_US_EQ"), ("BRK_B", "BRK-B"))
         self.assertEqual(market_data.parse_t212_ticker("ASMLa_EQ"), ("ASML", None))   # unconfirmed suffix
+        self.assertEqual(market_data.parse_t212_ticker("IPOE_US_EQ"), ("SOFI", "SOFI"))  # T212 kept the SPAC symbol
 
 
 class _Case(unittest.TestCase):

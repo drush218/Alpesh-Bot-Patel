@@ -17,13 +17,18 @@ BASE_CCY = "GBP"   # portfolio currency; every quoted currency also gets an X->G
 # Only suffixes we've confirmed are mapped; anything else needs yahoo_symbol set by hand.
 _T212_SUFFIX_TO_YAHOO = {"l": ".L"}
 
+# Trading212 symbols that differ from the real listing. IPOE is the SPAC SoFi merged into in 2021;
+# T212 never renamed it.
+_T212_RENAMED = {"IPOE": "SOFI"}
+
 
 def parse_t212_ticker(t212_ticker: str) -> tuple[str, str | None]:
     """'BROS_US_EQ' -> ('BROS', 'BROS'); 'HSBAl_EQ' -> ('HSBA', 'HSBA.L'); 'BRK_B_US_EQ' -> ('BRK_B', 'BRK-B')."""
     body = t212_ticker.removesuffix("_EQ")
     if body.endswith("_US"):
-        base = body.removesuffix("_US")
-        return base.upper(), base.upper().replace("_", "-")
+        base = body.removesuffix("_US").upper()
+        base = _T212_RENAMED.get(base, base)
+        return base, base.replace("_", "-")
     if body and body[-1].islower():
         base, suffix = body[:-1], body[-1]
         yahoo = base.upper() + _T212_SUFFIX_TO_YAHOO[suffix] if suffix in _T212_SUFFIX_TO_YAHOO else None

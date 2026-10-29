@@ -39,6 +39,7 @@ TICKER_INDEX: dict[str, str] = {
     "DECK": "SPX",
     "UBER": "SPX",
     "ONON": "SPX",
+    "SOFI": "SPX",   # Nasdaq-listed, not in the S&P 500 or Nasdaq 100 (as of mid-2026); S&P 500 is the closest benchmark
     "BGEO": "MCX",
     "UKW": "MCX",
     "GRG": "MCX",
