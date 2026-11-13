@@ -372,7 +372,7 @@ export function ScenarioWorkspace({ ticker, onBaseLoaded, onBaseSaved }: {
       <EpsBand result={result} />
 
       <div className="an-micro" style={{ margin: '14px 0 2px' }}>PE at current price{comparing ? ' · edited' : ''}</div>
-      <PeChart outputs={result.outputs ?? result.base_outputs} years={result.base_inputs.meta.forecast_years} price={price} />
+      <PeChart outputs={result.outputs ?? result.base_outputs} years={result.base_inputs.meta.forecast_years} price={price} actual={result.actual} />
 
     </section>
   )

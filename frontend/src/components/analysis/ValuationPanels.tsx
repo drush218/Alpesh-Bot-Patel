@@ -65,10 +65,10 @@ function niceStep(raw: number) {
 function YearLine({ years, values, callout, tick, aria, refLine }: {
   years: string[]
   values: (number | null)[]
-  callout: (v: number) => { text: string; color?: string }
+  callout: (v: number, i: number) => { text: string; color?: string }
   tick: (v: number) => string
   aria: string
-  refLine?: { value: number; label: string }
+  refLine?: { value: number; label?: string }
 }) {
   const known = values.filter((v): v is number => v != null)
   const hi = Math.max(0, ...known, refLine?.value ?? 0) || 1
@@ -98,13 +98,15 @@ function YearLine({ years, values, callout, tick, aria, refLine }: {
       {refLine && (
         <g>
           <line x1={PAD.l} x2={W - PAD.r} y1={y(refLine.value)} y2={y(refLine.value)} stroke="var(--accent)" strokeWidth={1.5} strokeDasharray="5 4" />
-          <text x={W - PAD.r} y={y(refLine.value) + 15} textAnchor="end" fontSize={11} fontWeight={600} fill="var(--accent)">{refLine.label}</text>
+          {refLine.label && (
+            <text x={W - PAD.r} y={y(refLine.value) + 15} textAnchor="end" fontSize={11} fontWeight={600} fill="var(--accent)">{refLine.label}</text>
+          )}
         </g>
       )}
       <path d={path} fill="none" stroke="var(--ink2)" strokeWidth={2} />
       {pts.map((p, i) => {
         if (!p) return null
-        const c = callout(values[i] as number)
+        const c = callout(values[i] as number, i)
         return (
           <g key={years[i]}>
             <circle cx={p[0]} cy={p[1]} r={4} fill="var(--panel)" stroke="var(--ink2)" strokeWidth={2} />
@@ -118,11 +120,13 @@ function YearLine({ years, values, callout, tick, aria, refLine }: {
 
 /* ---------------- PE at current price ---------------- */
 
-export function PeChart({ outputs, years, price }: Omit<Props, 'multiple' | 'epsCcy'>) {
-  const values = outputs.scenarios.bau.map((r) => peAt(r.eps, price))
+/** PE at the current price; the base-year actual (current PE) leads when the analysis has its actuals. */
+export function PeChart({ outputs, years, price, actual }: Omit<Props, 'multiple' | 'epsCcy'> & { actual?: { year: string | null; eps: number | null } }) {
+  const lead = actual?.eps != null ? [{ year: `${actual.year ?? 'base'}A`, pe: peAt(actual.eps, price) }] : []
+  const values = [...lead.map((l) => l.pe), ...outputs.scenarios.bau.map((r) => peAt(r.eps, price))]
   return (
     <YearLine
-      years={years}
+      years={[...lead.map((l) => l.year), ...years]}
       values={values}
       callout={(v) => ({ text: `${fmt(v, 1)}×` })}
       tick={(v) => `${v.toFixed(0)}×`}
@@ -135,18 +139,20 @@ export function PeChart({ outputs, years, price }: Omit<Props, 'multiple' | 'eps
 
 export function UpsideChart({ outputs, years, price, multiple }: Omit<Props, 'epsCcy'>) {
   const sym = currencySymbol(price?.currency)
-  const values = outputs.scenarios.bau.map((r) => (price ? priceAt(r.eps, multiple, price) : null))
+  const money = (v: number) => `${sym}${fmt(v, v >= 100 ? 0 : 2)}`
+  const values = [price?.close ?? null, ...outputs.scenarios.bau.map((r) => (price ? priceAt(r.eps, multiple, price) : null))]
   return (
     <YearLine
-      years={years}
+      years={['now', ...years]}
       values={values}
-      callout={(v) => {
+      callout={(v, i) => {
+        if (i === 0) return { text: `now ${money(v)}`, color: 'var(--accent)' }
         const pct = price ? (v / price.close - 1) * 100 : 0
-        return { text: `${signed(pct, 1)}%`, color: pct > 0.05 ? 'var(--up)' : pct < -0.05 ? 'var(--down)' : 'var(--ink2)' }
+        return { text: `${money(v)} · ${signed(pct, 1)}%`, color: pct > 0.05 ? 'var(--up)' : pct < -0.05 ? 'var(--down)' : 'var(--ink2)' }
       }}
       tick={(v) => `${sym}${v.toFixed(0)}`}
       aria={`Implied share price at ${fmt(multiple, 1)}x BAU EPS, by forecast year, against the current price`}
-      refLine={price ? { value: price.close, label: `now ${sym}${price.close.toFixed(2)}` } : undefined}
+      refLine={price ? { value: price.close } : undefined}
     />
   )
 }

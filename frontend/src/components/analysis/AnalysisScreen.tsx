@@ -42,7 +42,10 @@ export function AnalysisScreen({ ticker, onSize, onBack }: { ticker: string; onS
   const sinceStrike = price && ref ? (price.close / ref.value - 1) * 100 : null
   const pos = view?.position
   const years = base?.base_inputs.meta.forecast_years ?? []
-  const firstEps = base?.base_outputs.scenarios.bau[0]?.eps
+  // current PE = price over base-year actual EPS; first forecast year until the actuals are filled
+  const actualEps = base?.actual.eps ?? null
+  const firstEps = actualEps ?? base?.base_outputs.scenarios.bau[0]?.eps
+  const peYear = actualEps != null ? `${base?.actual.year}A` : years[0] ?? ''
   const currentPe = firstEps != null ? peAt(firstEps, price) : null
   const defaultPe = targetPe ?? currentPe
   const multiple = chosenPe ?? defaultPe ?? 25
@@ -108,8 +111,8 @@ export function AnalysisScreen({ ticker, onSize, onBack }: { ticker: string; onS
             <Panel title="Implied share price" note={<PeControl value={multiple} current={defaultPe} onChange={setChosenPe} />}>
               <UpsideChart outputs={base.base_outputs} years={years} price={price} multiple={multiple} />
               <p className="an-sub" style={{ margin: '6px 0 0' }}>
-                Price at {multiple.toFixed(1)}× BAU EPS; callouts are the change from today's {psym}{price ? price.close.toFixed(2) : '—'}.
-                {' '}Defaults to {targetPe != null ? 'your target PE from the scorecard' : `the current ${years[0] ?? ''} PE (set a target PE in the scorecard to use that instead)`}.
+                Price at {multiple.toFixed(1)}× BAU EPS, starting from today's price; callouts are the implied price and its change from today's {psym}{price ? price.close.toFixed(2) : '—'}.
+                {' '}Defaults to {targetPe != null ? 'your target PE from the scorecard' : `the current ${peYear} PE (set a target PE in the scorecard to use that instead)`}.
               </p>
             </Panel>
           )}
